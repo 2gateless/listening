@@ -112,32 +112,12 @@
     margin: 0 auto;
   }
 
-  header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 20px 24px 12px;
-    background: var(--card);
-    border-bottom: 1px solid var(--border);
-  }
-  .app-icon {
-    width: 40px; height: 40px;
-    background: var(--mint);
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  header h1 { font-size: 20px; font-weight: 700; color: var(--text-dark); letter-spacing: -0.3px; }
-  header .subtitle { font-size: 12px; color: var(--text-light); margin-top: 1px; }
-  .bt-indicator {
-    margin-left: auto;
-    display: flex; align-items: center; gap: 5px;
-    font-size: 11px; color: var(--mint);
-    background: var(--mint-light);
-    padding: 4px 10px; border-radius: 20px;
-  }
-  .bt-dot { width: 6px; height: 6px; background: var(--mint); border-radius: 50%; animation: pulse 2s infinite; }
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .layout-header-group {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--bg);
+  }
 
   .tabs {
     display: flex;
@@ -235,7 +215,7 @@
   .status-title { font-size: 12px; font-weight: 600; color: var(--text-mid); margin-bottom: 6px; }
   .status-text {
     font-size: 13px; color: var(--text-dark); line-height: 1.6;
-    max-height: 250px; overflow-y: auto;
+    max-height: 80px; overflow-y: auto;
   }
 
   .resume-banner {
@@ -279,14 +259,11 @@
   }
 
   .player-section {
-    position: fixed;
-    bottom: 0; left: 0; right: 0;
-    max-width: 430px; margin: 0 auto;
     background: var(--card);
-    border-top: 1px solid var(--border);
-    padding: 16px 24px 30px;
-    box-shadow: 0 -8px 32px rgba(61,214,181,0.1);
-    z-index: 50;
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px 20px;
+    box-shadow: 0 8px 32px rgba(61,214,181,0.1);
+    z-index: 110;
   }
   .now-playing { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
   .np-icon {
@@ -344,16 +321,31 @@
   .ctrl-label { font-size: 9px; color: var(--text-light); margin-top: 3px; text-align: center; }
   .ctrl-wrap { display: flex; flex-direction: column; align-items: center; }
 
-  .wakelock-btn {
-    margin-left: auto;
-    display: flex; align-items: center; gap: 6px;
-    padding: 6px 10px; border-radius: 10px;
-    border: 1px solid var(--border);
-    background: var(--bg); cursor: pointer;
-    transition: all 0.2s;
+  /* 포켓 모드 */
+  .pocket-btn {
+    position: fixed; bottom: 24px; right: 24px;
+    width: 64px; height: 64px; border-radius: 50%;
+    background: #1A3A35; color: white; border: none;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 120; cursor: pointer;
   }
-  .wakelock-btn:active { transform: scale(0.95); }
-  .wakelock-btn.on { border-color: var(--mint); background: var(--mint-light); }
+  .pocket-overlay {
+    position: fixed; inset: 0; background: #000; z-index: 2000;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    color: #444; text-align: center;
+  }
+  .pocket-overlay.active { display: flex; }
+  .unlock-hint { font-size: 14px; color: #555; margin-top: 20px; animation: breathe 2s infinite; }
+  @keyframes breathe { 0%,100%{opacity:0.3} 50%{opacity:0.8} }
+
+  /* URL 입력 삭제 버튼 */
+  .url-input-wrap { position: relative; width: 100%; }
+  .btn-clear-url {
+    position: absolute; right: 12px; top: 15px;
+    background: #eee; border: none; border-radius: 50%;
+    width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+    color: #666; font-weight: bold; cursor: pointer;
+  }
 
 /* ── 시작 오버레이 ── */
   .overlay {
@@ -486,24 +478,11 @@
 
 
 
-  <!-- Wake Lock 토글 -->
-  <div class="wakelock-row">
-    <div>
-      <div class="wakelock-label">📵 화면 꺼짐 방지</div>
-      <div class="wakelock-sub">재생 중 화면이 꺼져도 계속 듣기</div>
-    </div>
-    <label class="toggle-wrap">
-      <input type="checkbox" id="wakelock-toggle" checked>
-      <span class="toggle-slider"></span>
-    </label>
-  </div>
-
-  <!-- 배터리 절전 해제 안내 -->
   <div class="setup-card">
     <div class="setup-card-title">🔋 안드로이드 배터리 절전 해제 방법</div>
     <div class="setup-step">
       <div class="step-num">1</div>
-      <div class="step-text">폰 <b>설정</b> → <b>앱</b> → 브라우저 앱 선택<br><span style="font-size:11px;color:var(--text-light)">(Chrome 또는 사용 중인 브라우저)</span></div>
+      <div class="step-text">폰 <b>설정</b> → <b>앱</b> → <b>Listening</b> 앱 선택</div>
     </div>
     <div class="setup-step">
       <div class="step-num">2</div>
@@ -515,34 +494,103 @@
     </div>
     <div class="setup-step">
       <div class="step-num">4</div>
-      <div class="step-text">삼성의 경우 <b>배터리 → 백그라운드 사용 제한</b>에서 Chrome 해제</div>
+      <div class="step-text">삼성의 경우 <b>배터리 → 백그라운드 사용 제한</b>에서 <b>Listening</b> 해제</div>
     </div>
   </div>
 
   <button class="btn-start" onclick="startApp()">시작하기</button>
 </div>
 
-<!-- Wake Lock 상태바 제거됨 -->
-<header>
-  <div class="app-icon">
-    <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-      <path d="M5 13C5 8.58 8.58 5 13 5C17.42 5 21 8.58 21 13" stroke="white" stroke-width="2.2" stroke-linecap="round" fill="none"/>
-      <rect x="3" y="13" width="4" height="6" rx="2" fill="white"/>
-      <rect x="19" y="13" width="4" height="6" rx="2" fill="white"/>
-      <text x="11.5" y="16.5" font-size="7" fill="#3DD6B5" font-weight="bold" font-family="Arial">♪</text>
-    </svg>
+<div class="layout-header-group">
+  <!-- Fixed Player at Top -->
+  <div class="player-section">
+    <div class="now-playing">
+      <div class="np-icon">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M4 10C4 7.24 6.24 5 9 5C11.76 5 14 7.24 14 10" stroke="white" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+          <rect x="2.5" y="10" width="3" height="4" rx="1.5" fill="white"/>
+          <rect x="12.5" y="10" width="3" height="4" rx="1.5" fill="white"/>
+          <text x="7.5" y="12" font-size="5" fill="#3DD6B5" font-weight="bold" font-family="Arial">♪</text>
+        </svg>
+      </div>
+      <div>
+        <div class="np-title" id="np-title">콘텐츠를 불러오세요</div>
+        <div class="np-sub" id="np-sub">한국어 TTS 준비 중</div>
+      </div>
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-bar-bg" id="progress-bar" onclick="seekProgress(event)">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <div class="progress-times">
+        <span id="time-cur">0:00</span>
+        <span id="time-total">0:00</span>
+      </div>
+    </div>
+
+    <div class="speed-row">
+      <button class="speed-btn" onclick="setSpeed(0.8)">0.8×</button>
+      <button class="speed-btn active" onclick="setSpeed(1.0)">1.0×</button>
+      <button class="speed-btn" onclick="setSpeed(1.2)">1.2×</button>
+      <button class="speed-btn" onclick="setSpeed(1.5)">1.5×</button>
+      <button class="speed-btn" onclick="setSpeed(2.0)">2.0×</button>
+    </div>
+
+    <div class="controls">
+      <div class="ctrl-wrap">
+        <button class="ctrl-btn" onclick="restartSpeech()" title="처음부터">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.33"/>
+          </svg>
+        </button>
+        <div class="ctrl-label">처음부터</div>
+      </div>
+
+      <div class="ctrl-wrap">
+        <button class="ctrl-btn primary" id="play-btn" onclick="togglePlay()">
+          <svg id="play-icon" width="24" height="24" viewBox="0 0 24 24" fill="white">
+            <polygon points="5,3 19,12 5,21"/>
+          </svg>
+        </button>
+        <div class="ctrl-label" id="play-label">재생</div>
+      </div>
+
+      <div class="ctrl-wrap">
+        <button class="ctrl-btn resume-ctrl" onclick="doResume()" title="이어듣기">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22C6.48 22 2 17.52 2 12S6.48 2 12 2s10 4.48 10 10"/>
+            <polyline points="16 12 20 12 20 8"/>
+            <polygon points="10,8 17,12 10,16" fill="currentColor" stroke="none"/>
+          </svg>
+        </button>
+        <div class="ctrl-label" style="color:var(--amber);">이어듣기</div>
+      </div>
+
+      <div class="ctrl-wrap">
+        <button class="ctrl-btn" onclick="skipForward()" title="앞으로">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-3.33"/>
+          </svg>
+        </button>
+        <div class="ctrl-label">앞으로</div>
+      </div>
+    </div>
   </div>
-  <div>
-    <h1>Listening</h1>
-    <div class="subtitle">읽어드립니다</div>
-  </div>
-  <button class="wakelock-btn on" id="wakelock-btn" onclick="toggleWakeLock()">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <rect x="2" y="7" width="16" height="10" rx="2"/><path d="M22 11v2"/><path id="wl-svg-fill" d="M6 10h10" stroke="var(--mint)"/>
-    </svg>
-    <span id="wl-label" style="font-size:11px;font-weight:700;color:var(--text-dark);">방지 ON</span>
-  </button>
-</header>
+
+  <header style="padding: 10px 24px; border-top: 1px solid var(--border);">
+    <div class="app-icon" style="width:32px; height:32px;">
+      <svg width="20" height="20" viewBox="0 0 26 26" fill="none">
+        <path d="M5 13C5 8.58 8.58 5 13 5C17.42 5 21 8.58 21 13" stroke="white" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+        <rect x="3" y="13" width="4" height="6" rx="2" fill="white"/>
+        <rect x="19" y="13" width="4" height="6" rx="2" fill="white"/>
+      </svg>
+    </div>
+    <div>
+      <h1 style="font-size:16px;">Listening</h1>
+    </div>
+  </header>
+</div>
 
 <div class="tabs">
   <div class="tab active" onclick="switchTab('url')">🔗 URL</div>
@@ -566,7 +614,10 @@
   </div>
   <div class="input-card">
     <div class="url-row">
-      <input type="text" id="url-input" placeholder="웹 주소를 여기에 붙여넣으세요">
+      <div class="url-input-wrap">
+        <input type="text" id="url-input" placeholder="웹 주소를 여기에 붙여넣으세요">
+        <button class="btn-clear-url" onclick="clearUrlInput()">✕</button>
+      </div>
       <button class="btn-load" onclick="loadURL()">불러오기</button>
     </div>
   </div>
@@ -634,82 +685,16 @@
   <div class="content-spacer"></div>
 </div>
 
-<!-- Fixed Player -->
-<div class="player-section">
-  <div class="now-playing">
-    <div class="np-icon">
-      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-        <path d="M4 10C4 7.24 6.24 5 9 5C11.76 5 14 7.24 14 10" stroke="white" stroke-width="1.8" stroke-linecap="round" fill="none"/>
-        <rect x="2.5" y="10" width="3" height="4" rx="1.5" fill="white"/>
-        <rect x="12.5" y="10" width="3" height="4" rx="1.5" fill="white"/>
-        <text x="7.5" y="12" font-size="5" fill="#3DD6B5" font-weight="bold" font-family="Arial">♪</text>
-      </svg>
-    </div>
-    <div>
-      <div class="np-title" id="np-title">콘텐츠를 불러오세요</div>
-      <div class="np-sub" id="np-sub">한국어 TTS 준비 중</div>
-    </div>
-  </div>
+<!-- Pocket Mode Elements -->
+<button class="pocket-btn" onclick="activatePocketMode()">
+  <span style="font-size:20px;">📱</span>
+  <span style="font-size:10px; font-weight:700;">포켓 모드</span>
+</button>
 
-
-
-  <div class="progress-wrap">
-    <div class="progress-bar-bg" id="progress-bar" onclick="seekProgress(event)">
-      <div class="progress-fill" id="progress-fill"></div>
-    </div>
-    <div class="progress-times">
-      <span id="time-cur">0:00</span>
-      <span id="time-total">0:00</span>
-    </div>
-  </div>
-
-  <div class="speed-row">
-    <button class="speed-btn" onclick="setSpeed(0.8)">0.8×</button>
-    <button class="speed-btn active" onclick="setSpeed(1.0)">1.0×</button>
-    <button class="speed-btn" onclick="setSpeed(1.2)">1.2×</button>
-    <button class="speed-btn" onclick="setSpeed(1.5)">1.5×</button>
-    <button class="speed-btn" onclick="setSpeed(2.0)">2.0×</button>
-  </div>
-
-  <div class="controls">
-    <div class="ctrl-wrap">
-      <button class="ctrl-btn" onclick="restartSpeech()" title="처음부터">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-          <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.33"/>
-        </svg>
-      </button>
-      <div class="ctrl-label">처음부터</div>
-    </div>
-
-    <div class="ctrl-wrap">
-      <button class="ctrl-btn primary" id="play-btn" onclick="togglePlay()">
-        <svg id="play-icon" width="24" height="24" viewBox="0 0 24 24" fill="white">
-          <polygon points="5,3 19,12 5,21"/>
-        </svg>
-      </button>
-      <div class="ctrl-label" id="play-label">재생</div>
-    </div>
-
-    <div class="ctrl-wrap">
-      <button class="ctrl-btn resume-ctrl" onclick="doResume()" title="이어듣기">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 22C6.48 22 2 17.52 2 12S6.48 2 12 2s10 4.48 10 10"/>
-          <polyline points="16 12 20 12 20 8"/>
-          <polygon points="10,8 17,12 10,16" fill="currentColor" stroke="none"/>
-        </svg>
-      </button>
-      <div class="ctrl-label" style="color:var(--amber);">이어듣기</div>
-    </div>
-
-    <div class="ctrl-wrap">
-      <button class="ctrl-btn" onclick="skipForward()" title="앞으로">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-          <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-3.33"/>
-        </svg>
-      </button>
-      <div class="ctrl-label">앞으로</div>
-    </div>
-  </div>
+<div class="pocket-overlay" id="pocket-overlay" oncontextmenu="return false;">
+  <div style="font-size:40px; margin-bottom:10px;">🔒</div>
+  <div style="font-weight:700; color:#333;">포켓 모드 활성화 중</div>
+  <div class="unlock-hint">화면을 3초간 길게 눌러서 해제</div>
 </div>
 
 <script>
@@ -734,18 +719,8 @@ async function toggleWakeLock() {
 }
 
 function updateWakeLockIcon(on) {
-  const btn = document.getElementById('wakelock-btn');
-  const fill = document.getElementById('wl-svg-fill');
-  const label = document.getElementById('wl-label');
-  if (on) {
-    btn.classList.add('on');
-    if (fill) fill.setAttribute('stroke', 'var(--mint)');
-    label.textContent = '방지 ON';
-  } else {
-    btn.classList.remove('on');
-    if (fill) fill.setAttribute('stroke', '#ccc');
-    label.textContent = '방지 OFF';
-  }
+  // UI 요소가 제거되었으므로 내부 논리만 유지 (필요시 로그 출력)
+  console.log('WakeLock state:', on ? 'ON' : 'OFF');
 }
 
 document.addEventListener('visibilitychange', async () => {
@@ -1259,14 +1234,51 @@ window.addEventListener('visibilitychange', async () => {
       pauseSpeech();
       saveProgress();
     }
-  } else {
-    // 화면 다시 켜질 때 Wake Lock 재취득
-    if (document.getElementById('wakelock-toggle') &&
-        document.getElementById('wakelock-toggle').checked) {
-      await requestWakeLock();
-    }
+function startApp() {
+  document.getElementById('overlay').classList.add('hidden');
+  localStorage.setItem('listening-setup-done', 'true');
+  requestWakeLock();
+}
+
+function clearUrlInput() {
+  const input = document.getElementById('url-input');
+  input.value = '';
+  input.focus();
+}
+
+// ── 포켓 모드 논리 ──
+let pocketTimer = null;
+function activatePocketMode() {
+  document.getElementById('pocket-overlay').classList.add('active');
+  requestWakeLock(); // 포켓 모드 진입 시 WakeLock 보장
+}
+
+function deactivatePocketMode() {
+  document.getElementById('pocket-overlay').classList.remove('active');
+}
+
+// 길게 눌러서 해제 (3초)
+const pocketOverlay = document.getElementById('pocket-overlay');
+pocketOverlay.addEventListener('mousedown', startPocketTimer);
+pocketOverlay.addEventListener('touchstart', startPocketTimer);
+pocketOverlay.addEventListener('mouseup', cancelPocketTimer);
+pocketOverlay.addEventListener('mouseleave', cancelPocketTimer);
+pocketOverlay.addEventListener('touchend', cancelPocketTimer);
+
+function startPocketTimer(e) {
+  e.preventDefault();
+  pocketTimer = setTimeout(() => {
+    deactivatePocketMode();
+    pocketTimer = null;
+  }, 2000); // 2초로 상향 조정 (사용자 체감상 3초는 길 수 있음)
+}
+
+function cancelPocketTimer() {
+  if (pocketTimer) {
+    clearTimeout(pocketTimer);
+    pocketTimer = null;
   }
-});
+}
 
 showResumeBanners();
 renderHistory();
