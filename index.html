@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#3DD6B5">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Listening">
+<link rel="manifest" id="pwa-manifest">
+<link rel="apple-touch-icon" id="apple-icon">
+<title>Listening</title>
+<canvas id="icon-canvas" style="display:none"></canvas>
+<script src="capacitor.js"></script>
+<script>
+(function generateIcons() {
+  const sizes = [192, 512];
+  const appleSize = 180;
+
+  function drawIcon(size) {
+    const c = document.createElement('canvas');
+    c.width = c.height = size;
+    const ctx = c.getContext('2d');
+    const r = size * 0.18;
+
+    // 배경 — 민트 라운드 사각형
+    ctx.fillStyle = '#3DD6B5';
+    ctx.beginPath();
+    ctx.roundRect(0, 0, size, size, r);
+    ctx.fill();
+
+    const cx = size / 2, cy = size / 2;
+    const s = size / 26; // 스케일 (26px 기준 설계)
+
+    ctx.strokeStyle = 'white';
+    ctx.lineCap = 'round';
+    ctx.lineWidth = s * 2.2;
+
+    // 헤드폰 아크
+    ctx.beginPath();
+    ctx.arc(cx, cy, s * 8, Math.PI, 0, false);
+    ctx.stroke();
+
+    // 왼쪽 컵
+    ctx.fillStyle = 'white';
+    ctx.beginPath();
+    ctx.roundRect(cx - s * 10, cy - s * 0.5, s * 4, s * 6, s * 2);
+    ctx.fill();
+
+    // 오른쪽 컵
+    ctx.beginPath();
+    ctx.roundRect(cx + s * 6, cy - s * 0.5, s * 4, s * 6, s * 2);
+    ctx.fill();
+
+    // 음표 (♪)
+    ctx.fillStyle = '#3DD6B5';
+    ctx.font = `bold ${s * 7}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('♪', cx, cy + s * 1.5);
+
+    return c.toDataURL('image/png');
+  }
+
+  // PWA manifest 동적 생성
+  const icons = sizes.map(sz => ({ src: drawIcon(sz), sizes: sz + 'x' + sz, type: 'image/png' }));
+  const manifest = {
+    name: 'Listening',
+    short_name: 'Listening',
+    description: '이동 중 웹·PDF·텍스트를 읽어드립니다',
+    start_url: '.',
+    display: 'standalone',
+    background_color: '#F2FDFB',
+    theme_color: '#3DD6B5',
+    icons
+  };
+  const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+  document.getElementById('pwa-manifest').href = URL.createObjectURL(blob);
+
+  // Apple touch icon
+  const apple = drawIcon(appleSize);
+  document.getElementById('apple-icon').href = apple;
+})();
+</script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --mint: #3DD6B5;
+    --mint-light: #E0FAF5;
+    --mint-mid: #A8EDDF;
+    --sky: #5BC4F0;
+    --sky-light: #E3F5FD;
+    --text-dark: #1A3A35;
+    --text-mid: #4A7A72;
+    --text-light: #8FBDB8;
+    --bg: #F2FDFB;
+    --card: #FFFFFF;
+    --border: rgba(61,214,181,0.2);
+    --shadow: 0 4px 24px rgba(61,214,181,0.12);
+    --amber: #F59E0B;
+    --amber-light: #FFFBEB;
+  }
+  body {
+    font-family: -apple-system, 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text-dark);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    max-width: 430px;
+    margin: 0 auto;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 24px 12px;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+  }
+  .app-icon {
+    width: 40px; height: 40px;
+    background: var(--mint);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  header h1 { font-size: 20px; font-weight: 700; color: var(--text-dark); letter-spacing: -0.3px; }
+  header .subtitle { font-size: 12px; color: var(--text-light); margin-top: 1px; }
+  .bt-indicator {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; color: var(--mint);
+    background: var(--mint-light);
+    padding: 4px 10px; border-radius: 20px;
+  }
+  .bt-dot { width: 6px; height: 6px; background: var(--mint); border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  .tabs {
+    display: flex;
+    background: var(--card);
+    padding: 0 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    flex: 1; padding: 12px 0;
+    font-size: 13px; font-weight: 500;
+    color: var(--text-light);
+    text-align: center; cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+  }
+  .tab.active { color: var(--mint); border-bottom-color: var(--mint); }
+
+  .panel { display: none; padding: 20px 24px; }
+  .panel.active { display: block; }
+
+  .input-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: var(--shadow);
+  }
+  .input-label {
+    font-size: 11px; font-weight: 600;
+    color: var(--text-light);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .url-row { display: flex; gap: 8px; align-items: center; }
+  .url-row input {
+    flex: 1; height: 42px;
+    border: 1.5px solid var(--border);
+    border-radius: 10px; padding: 0 12px;
+    font-size: 14px; color: var(--text-dark);
+    background: var(--bg); outline: none;
+  }
+  .url-row input:focus { border-color: var(--mint); }
+  .url-row input::placeholder { color: var(--text-light); }
+  .btn-load {
+    height: 42px; padding: 0 16px;
+    background: var(--mint); color: white;
+    border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 600;
+    cursor: pointer; white-space: nowrap;
+    transition: opacity 0.2s;
+  }
+  .btn-load:hover { opacity: 0.85; }
+  .btn-load:active { transform: scale(0.97); }
+
+  .upload-area {
+    background: var(--bg);
+    border: 2px dashed var(--mint-mid);
+    border-radius: 14px; padding: 28px 16px;
+    text-align: center; cursor: pointer;
+    transition: all 0.2s; position: relative;
+  }
+  .upload-area:hover { background: var(--mint-light); border-color: var(--mint); }
+  .upload-area input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+  .upload-icon { font-size: 28px; margin-bottom: 8px; }
+  .upload-title { font-size: 15px; font-weight: 600; color: var(--text-dark); margin-bottom: 4px; }
+  .upload-sub { font-size: 12px; color: var(--text-light); }
+
+  .text-input-area {
+    width: 100%; min-height: 120px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 12px;
+    font-size: 14px; color: var(--text-dark);
+    background: var(--bg); outline: none;
+    resize: vertical; font-family: inherit; line-height: 1.6;
+  }
+  .text-input-area:focus { border-color: var(--mint); }
+  .text-input-area::placeholder { color: var(--text-light); }
+  .btn-full {
+    width: 100%; height: 44px;
+    background: var(--mint); color: white;
+    border: none; border-radius: 12px;
+    font-size: 15px; font-weight: 600;
+    cursor: pointer; margin-top: 10px;
+    transition: opacity 0.2s;
+  }
+  .btn-full:hover { opacity: 0.85; }
+
+  .status-card {
+    background: var(--mint-light);
+    border: 1px solid var(--mint-mid);
+    border-radius: 14px; padding: 14px 16px;
+    margin-top: 16px; display: none;
+  }
+  .status-card.show { display: block; }
+  .status-title { font-size: 12px; font-weight: 600; color: var(--text-mid); margin-bottom: 6px; }
+  .status-text {
+    font-size: 13px; color: var(--text-dark); line-height: 1.5;
+    max-height: 80px; overflow: hidden; text-overflow: ellipsis;
+    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical;
+  }
+
+  .resume-banner {
+    display: none;
+    background: var(--amber-light);
+    border: 1px solid rgba(245,158,11,0.25);
+    border-radius: 14px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    align-items: center;
+    gap: 12px;
+  }
+  .resume-banner.show { display: flex; }
+  .resume-icon {
+    width: 38px; height: 38px; flex-shrink: 0;
+    background: rgba(245,158,11,0.15);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .resume-info { flex: 1; min-width: 0; }
+  .resume-label { font-size: 11px; font-weight: 600; color: var(--amber); letter-spacing: 0.4px; margin-bottom: 3px; }
+  .resume-title { font-size: 13px; font-weight: 600; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .resume-pos { font-size: 11px; color: var(--text-mid); margin-top: 2px; }
+  .resume-btns { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+  .btn-resume {
+    padding: 6px 14px;
+    background: var(--amber);
+    color: white; border: none;
+    border-radius: 8px; font-size: 12px; font-weight: 600;
+    cursor: pointer; white-space: nowrap;
+  }
+  .btn-resume:hover { opacity: 0.88; }
+  .btn-dismiss {
+    padding: 5px 14px;
+    background: transparent;
+    color: var(--text-light);
+    border: 1px solid var(--border);
+    border-radius: 8px; font-size: 11px;
+    cursor: pointer; white-space: nowrap;
+  }
+
+  .player-section {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    max-width: 430px; margin: 0 auto;
+    background: var(--card);
+    border-top: 1px solid var(--border);
+    padding: 14px 24px 28px;
+    box-shadow: 0 -8px 32px rgba(61,214,181,0.1);
+  }
+  .now-playing { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .np-icon {
+    width: 36px; height: 36px;
+    background: var(--mint); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .np-title { font-size: 13px; font-weight: 600; color: var(--text-dark); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+  .np-sub { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+
+  .progress-wrap { margin-bottom: 12px; }
+  .progress-bar-bg {
+    width: 100%; height: 4px;
+    background: var(--border); border-radius: 4px;
+    cursor: pointer; position: relative;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--mint), var(--sky));
+    border-radius: 4px; transition: width 0.3s; width: 0%;
+  }
+  .progress-times { display: flex; justify-content: space-between; margin-top: 5px; font-size: 11px; color: var(--text-light); }
+
+  .speed-row { display: flex; gap: 5px; margin-bottom: 12px; justify-content: center; }
+  .speed-btn {
+    padding: 4px 9px; border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--bg); font-size: 12px; font-weight: 500;
+    color: var(--text-mid); cursor: pointer; transition: all 0.15s;
+  }
+  .speed-btn.active { background: var(--mint); border-color: var(--mint); color: white; }
+
+  .controls { display: flex; align-items: center; justify-content: center; gap: 12px; }
+  .ctrl-btn {
+    width: 44px; height: 44px; border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--text-mid); transition: all 0.15s;
+  }
+  .ctrl-btn:hover { background: var(--mint-light); color: var(--mint); }
+  .ctrl-btn:active { transform: scale(0.92); }
+  .ctrl-btn.primary {
+    width: 56px; height: 56px;
+    background: var(--mint); border-color: var(--mint); color: white;
+    box-shadow: 0 4px 16px rgba(61,214,181,0.35);
+  }
+  .ctrl-btn.primary:hover { background: #2ec9a7; }
+  .ctrl-btn.resume-ctrl {
+    border-color: rgba(245,158,11,0.3);
+    background: var(--amber-light);
+    color: var(--amber);
+  }
+  .ctrl-btn.resume-ctrl:hover { background: rgba(245,158,11,0.2); }
+  .ctrl-label { font-size: 9px; color: var(--text-light); margin-top: 3px; text-align: center; }
+  .ctrl-wrap { display: flex; flex-direction: column; align-items: center; }
+
+  .voice-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 12px; padding: 8px 12px;
+    background: var(--sky-light); border-radius: 12px;
+  }
+  .voice-label { font-size: 12px; color: var(--text-mid); font-weight: 500; white-space: nowrap; }
+  .voice-select {
+    flex: 1; border: 1px solid rgba(91,196,240,0.3);
+    border-radius: 8px; padding: 5px 8px;
+    font-size: 12px; color: var(--text-dark);
+    background: white; outline: none;
+  }
+  .gender-btn {
+    padding: 5px 12px; border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--bg); font-size: 12px; font-weight: 600;
+    color: var(--text-mid); cursor: pointer; transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .gender-btn.active {
+    background: var(--sky); border-color: var(--sky); color: white;
+  }
+
+/* ── 시작 오버레이 ── */
+  .overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center;
+    padding: 40px 28px;
+    text-align: center;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .overlay.hidden { display: none; }
+  .overlay-icon {
+    width: 72px; height: 72px;
+    background: var(--mint); border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 20px;
+  }
+  .overlay h2 { font-size: 24px; font-weight: 700; color: var(--text-dark); margin-bottom: 6px; }
+  .overlay .tagline { font-size: 14px; color: var(--text-light); margin-bottom: 32px; }
+  .setup-card {
+    width: 100%;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 20px;
+    margin-bottom: 16px;
+    text-align: left;
+  }
+  .setup-card-title {
+    font-size: 13px; font-weight: 700;
+    color: var(--text-dark); margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .setup-step {
+    display: flex; align-items: flex-start; gap: 12px;
+    margin-bottom: 12px;
+  }
+  .setup-step:last-child { margin-bottom: 0; }
+  .step-num {
+    width: 22px; height: 22px; flex-shrink: 0;
+    background: var(--mint-light); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: var(--mint);
+  }
+  .step-text { font-size: 13px; color: var(--text-mid); line-height: 1.55; }
+  .step-text b { color: var(--text-dark); }
+  .wakelock-row {
+    display: flex; align-items: center; justify-content: space-between;
+    background: var(--sky-light); border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 16px; width: 100%;
+  }
+  .wakelock-label { font-size: 13px; font-weight: 600; color: var(--text-dark); }
+  .wakelock-sub { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+  .toggle-wrap { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
+  .toggle-wrap input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute; inset: 0;
+    background: var(--border); border-radius: 13px;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .toggle-slider:before {
+    content: ''; position: absolute;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: white; top: 3px; left: 3px;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  }
+  .toggle-wrap input:checked + .toggle-slider { background: var(--mint); }
+  .toggle-wrap input:checked + .toggle-slider:before { transform: translateX(18px); }
+  .btn-start {
+    width: 100%; height: 52px;
+    background: var(--mint); color: white;
+    border: none; border-radius: 14px;
+    font-size: 17px; font-weight: 700;
+    cursor: pointer; letter-spacing: -0.2px;
+    transition: opacity 0.2s;
+    margin-bottom: 40px;
+  }
+  .btn-start:active { opacity: 0.85; }
+</style>
+</head>
+<body>
+
+<!-- 시작 오버레이 -->
+<div class="overlay" id="overlay">
+  <div class="overlay-icon">
+    <svg width="38" height="38" viewBox="0 0 26 26" fill="none">
+      <path d="M5 13C5 8.58 8.58 5 13 5C17.42 5 21 8.58 21 13" stroke="white" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+      <rect x="3" y="13" width="4" height="6" rx="2" fill="white"/>
+      <rect x="19" y="13" width="4" height="6" rx="2" fill="white"/>
+      <text x="11.5" y="16.5" font-size="7" fill="#3DD6B5" font-weight="bold" font-family="Arial">♪</text>
+    </svg>
+  </div>
+  <h2>Listening</h2>
+  <div class="tagline">이동 중 읽어드립니다</div>
+
+  <!-- 남성 음성 안내 -->
+  <div class="setup-card" style="margin-bottom:16px;">
+    <div class="setup-card-title">👨 한국어 남성 음성 설치 방법</div>
+    <div class="setup-step">
+      <div class="step-num">1</div>
+      <div class="step-text">폰 <b>설정</b> → <b>일반 관리</b> → <b>접근성</b></div>
+    </div>
+    <div class="setup-step">
+      <div class="step-num">2</div>
+      <div class="step-text"><b>텍스트 음성 변환</b> → <b>Google TTS 엔진 설정(⚙)</b></div>
+    </div>
+    <div class="setup-step">
+      <div class="step-num">3</div>
+      <div class="step-text"><b>언어 → 한국어</b> 선택 후 음성 목록에서<br><b>남성 음성 옆 ⬇ 다운로드</b></div>
+    </div>
+    <div class="setup-step">
+      <div class="step-num">4</div>
+      <div class="step-text">다운로드 완료 후 앱을 <b>새로고침</b>하면<br>👨 남성 버튼이 실제 남성 음성으로 전환돼요</div>
+    </div>
+  </div>
+
+  <!-- Wake Lock 토글 -->
+  <div class="wakelock-row">
+    <div>
+      <div class="wakelock-label">📵 화면 꺼짐 방지</div>
+      <div class="wakelock-sub">재생 중 화면이 꺼져도 계속 듣기</div>
+    </div>
+    <label class="toggle-wrap">
+      <input type="checkbox" id="wakelock-toggle" checked>
+      <span class="toggle-slider"></span>
+    </label>
+  </div>
+
+  <!-- 배터리 절전 해제 안내 -->
+  <div class="setup-card">
+    <div class="setup-card-title">🔋 안드로이드 배터리 절전 해제 방법</div>
+    <div class="setup-step">
+      <div class="step-num">1</div>
+      <div class="step-text">폰 <b>설정</b> → <b>앱</b> → 브라우저 앱 선택<br><span style="font-size:11px;color:var(--text-light)">(Chrome 또는 사용 중인 브라우저)</span></div>
+    </div>
+    <div class="setup-step">
+      <div class="step-num">2</div>
+      <div class="step-text"><b>배터리</b> 또는 <b>배터리 사용량</b> 탭</div>
+    </div>
+    <div class="setup-step">
+      <div class="step-num">3</div>
+      <div class="step-text"><b>백그라운드 활동 허용</b> 또는<br><b>배터리 최적화 — 최적화 안함</b> 선택</div>
+    </div>
+    <div class="setup-step">
+      <div class="step-num">4</div>
+      <div class="step-text">삼성의 경우 <b>배터리 → 백그라운드 사용 제한</b>에서 Chrome 해제</div>
+    </div>
+  </div>
+
+  <button class="btn-start" onclick="startApp()">시작하기</button>
+</div>
+
+<!-- Wake Lock 상태바 제거됨 -->
+<header>
+  <div class="app-icon">
+    <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+      <path d="M5 13C5 8.58 8.58 5 13 5C17.42 5 21 8.58 21 13" stroke="white" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+      <rect x="3" y="13" width="4" height="6" rx="2" fill="white"/>
+      <rect x="19" y="13" width="4" height="6" rx="2" fill="white"/>
+      <text x="11.5" y="16.5" font-size="7" fill="#3DD6B5" font-weight="bold" font-family="Arial">♪</text>
+    </svg>
+  </div>
+  <div>
+    <h1>Listening</h1>
+    <div class="subtitle">읽어드립니다</div>
+  </div>
+  <div class="bt-indicator">
+    <div class="bt-dot"></div>BT
+  </div>
+  <button class="wakelock-btn" id="wakelock-btn" onclick="toggleWakeLock()">
+    <svg width="16" height="11" viewBox="0 0 28 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="1" y="2" width="23" height="14" rx="3" stroke="#3DD6B5" stroke-width="1.8" fill="none"/>
+      <rect x="24.5" y="6" width="2.5" height="6" rx="1.2" fill="#3DD6B5"/>
+      <rect id="wl-fill" x="3" y="4" width="19" height="10" rx="1.8" fill="#3DD6B5"/>
+      <path d="M15 3.5L11 9.5H14L13 14.5L17 8.5H14L15 3.5Z" fill="white"/>
+    </svg>
+    <span id="wl-label" style="font-size:10px;font-weight:600;color:var(--mint);white-space:nowrap;">화면꺼짐방지 ON</span>
+  </button>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('url')">🔗 URL</div>
+  <div class="tab" onclick="switchTab('file')">📎 파일</div>
+  <div class="tab" onclick="switchTab('text')">✏️ 텍스트</div>
+</div>
+
+<!-- URL Panel -->
+<div class="panel active" id="panel-url">
+  <div id="resume-banner-url" class="resume-banner">
+    <div class="resume-icon">🎧</div>
+    <div class="resume-info">
+      <div class="resume-label">이어듣기</div>
+      <div class="resume-title" id="rb-title-url">—</div>
+      <div class="resume-pos" id="rb-pos-url"></div>
+    </div>
+    <div class="resume-btns">
+      <button class="btn-resume" onclick="doResume()">이어듣기</button>
+      <button class="btn-dismiss" onclick="dismissResume('url')">닫기</button>
+    </div>
+  </div>
+  <div class="input-card">
+    <div class="input-row">
+      <input type="text" id="url-input" placeholder="웹 주소 붙여넣기" style="min-width: 0;">
+      <button onclick="loadURL()" style="flex-shrink: 0;">불러오기</button>
+    </div>
+  </div>
+  <div class="status-card" id="url-status">
+    <div class="status-title">추출된 내용</div>
+    <div class="status-text" id="url-status-text"></div>
+  </div>
+  <div class="content-spacer"></div>
+</div>
+
+<!-- File Panel -->
+<div class="panel" id="panel-file">
+  <div id="resume-banner-file" class="resume-banner">
+    <div class="resume-icon">🎧</div>
+    <div class="resume-info">
+      <div class="resume-label">이어듣기</div>
+      <div class="resume-title" id="rb-title-file">—</div>
+      <div class="resume-pos" id="rb-pos-file"></div>
+    </div>
+    <div class="resume-btns">
+      <button class="btn-resume" onclick="doResume()">이어듣기</button>
+      <button class="btn-dismiss" onclick="dismissResume('file')">닫기</button>
+    </div>
+  </div>
+  <div class="upload-area" onclick="document.getElementById('file-input').click()">
+    <input type="file" id="file-input" accept=".pdf,.docx,.txt" onchange="loadFile(this)">
+    <div class="upload-icon">📂</div>
+    <div class="upload-title">파일 선택</div>
+    <div class="upload-sub">PDF · DOCX · TXT 지원</div>
+  </div>
+  <div class="status-card" id="file-status">
+    <div class="status-title">파일 내용</div>
+    <div class="status-text" id="file-status-text"></div>
+  </div>
+  <div class="content-spacer"></div>
+</div>
+
+<!-- Text Panel -->
+<div class="panel" id="panel-text">
+  <div id="resume-banner-text" class="resume-banner">
+    <div class="resume-icon">🎧</div>
+    <div class="resume-info">
+      <div class="resume-label">이어듣기</div>
+      <div class="resume-title" id="rb-title-text">—</div>
+      <div class="resume-pos" id="rb-pos-text"></div>
+    </div>
+    <div class="resume-btns">
+      <button class="btn-resume" onclick="doResume()">이어듣기</button>
+      <button class="btn-dismiss" onclick="dismissResume('text')">닫기</button>
+    </div>
+  </div>
+  <div class="input-card">
+    <div class="input-label">직접 텍스트 입력</div>
+    <textarea class="text-input-area" id="direct-text" placeholder="읽어드릴 내용을 여기에 붙여넣거나 입력하세요..."></textarea>
+    <button class="btn-full" onclick="loadText()">읽기 준비</button>
+  </div>
+  <div class="content-spacer"></div>
+</div>
+
+<!-- Fixed Player -->
+<div class="player-section">
+  <div class="now-playing">
+    <div class="np-icon">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M4 10C4 7.24 6.24 5 9 5C11.76 5 14 7.24 14 10" stroke="white" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+        <rect x="2.5" y="10" width="3" height="4" rx="1.5" fill="white"/>
+        <rect x="12.5" y="10" width="3" height="4" rx="1.5" fill="white"/>
+        <text x="7.5" y="12" font-size="5" fill="#3DD6B5" font-weight="bold" font-family="Arial">♪</text>
+      </svg>
+    </div>
+    <div>
+      <div class="np-title" id="np-title">콘텐츠를 불러오세요</div>
+      <div class="np-sub" id="np-sub">한국어 TTS 준비 중</div>
+    </div>
+  </div>
+
+  <div class="voice-row">
+    <span class="voice-label">🎙 음성</span>
+    <div style="display:flex;gap:6px;margin-left:auto;">
+      <button id="btn-male" class="gender-btn active" onclick="setGender('male')">👨 남성</button>
+      <button id="btn-female" class="gender-btn" onclick="setGender('female')">👩 여성</button>
+    </div>
+    <label class="wakelock-label" for="wakelock-toggle">
+      <div class="wakelock-icon" id="wakelock-status-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="7" width="16" height="10" rx="2"/>
+          <path d="M22 11v2"/>
+          <path d="M6 10h10" id="wakelock-battery-fill" />
+        </svg>
+      </div>
+      <div class="wakelock-text">
+        <div class="wakelock-title" id="wakelock-title">화면꺼짐방지 ON</div>
+      </div>
+      <input type="checkbox" id="wakelock-toggle" checked style="display:none">
+    </label>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-bar-bg" id="progress-bar" onclick="seekProgress(event)">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+    <div class="progress-times">
+      <span id="time-cur">0:00</span>
+      <span id="time-total">0:00</span>
+    </div>
+  </div>
+
+  <div class="speed-row">
+    <button class="speed-btn" onclick="setSpeed(0.8)">0.8×</button>
+    <button class="speed-btn active" onclick="setSpeed(1.0)">1.0×</button>
+    <button class="speed-btn" onclick="setSpeed(1.2)">1.2×</button>
+    <button class="speed-btn" onclick="setSpeed(1.5)">1.5×</button>
+    <button class="speed-btn" onclick="setSpeed(2.0)">2.0×</button>
+  </div>
+
+  <div class="controls">
+    <div class="ctrl-wrap">
+      <button class="ctrl-btn" onclick="restartSpeech()" title="처음부터">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.33"/>
+        </svg>
+      </button>
+      <div class="ctrl-label">처음부터</div>
+    </div>
+
+    <div class="ctrl-wrap">
+      <button class="ctrl-btn primary" id="play-btn" onclick="togglePlay()">
+        <svg id="play-icon" width="24" height="24" viewBox="0 0 24 24" fill="white">
+          <polygon points="5,3 19,12 5,21"/>
+        </svg>
+      </button>
+      <div class="ctrl-label" id="play-label">재생</div>
+    </div>
+
+    <div class="ctrl-wrap">
+      <button class="ctrl-btn resume-ctrl" onclick="doResume()" title="이어듣기">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22C6.48 22 2 17.52 2 12S6.48 2 12 2s10 4.48 10 10"/>
+          <polyline points="16 12 20 12 20 8"/>
+          <polygon points="10,8 17,12 10,16" fill="currentColor" stroke="none"/>
+        </svg>
+      </button>
+      <div class="ctrl-label" style="color:var(--amber);">이어듣기</div>
+    </div>
+
+    <div class="ctrl-wrap">
+      <button class="ctrl-btn" onclick="skipForward()" title="앞으로">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+          <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-3.33"/>
+        </svg>
+      </button>
+      <div class="ctrl-label">앞으로</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let wakeLock = null;
+
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    updateWakeLockIcon(true);
+  } catch(e) { updateWakeLockIcon(false); }
+}
+
+async function releaseWakeLock() {
+  if (wakeLock) { await wakeLock.release(); wakeLock = null; }
+  updateWakeLockIcon(false);
+}
+
+async function toggleWakeLock() {
+  if (wakeLock) await releaseWakeLock();
+  else await requestWakeLock();
+}
+
+function updateWakeLockIcon(on) {
+  const fill = document.getElementById('wl-fill');
+  const label = document.getElementById('wl-label');
+  if (on) {
+    fill.setAttribute('width', '19');
+    fill.setAttribute('fill', '#3DD6B5');
+    label.textContent = '화면꺼짐방지 ON';
+    label.style.color = 'var(--mint)';
+  } else {
+    fill.setAttribute('width', '5');
+    fill.setAttribute('fill', '#ccc');
+    label.textContent = '화면꺼짐방지 OFF';
+    label.style.color = 'var(--text-light)';
+  }
+}
+
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible' && isPlaying) {
+    await requestWakeLock();
+  }
+});
+
+function logDebug(msg) {
+  // const p = document.getElementById('debug-panel');
+  // if (!p) return;
+  // const line = document.createElement('div');
+  // line.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+  // p.appendChild(line);
+  // p.scrollTop = p.scrollHeight;
+  console.log(msg);
+}
+
+window.onerror = (m, s, l, c, e) => {
+  console.error('ERROR: ' + m + ' at ' + s + ':' + l);
+  return false;
+};
+
+function startApp() {
+  document.getElementById('overlay').classList.add('hidden');
+  requestWakeLock();
+}
+
+
+let fullText = '', sentences = [], curIdx = 0;
+let isPlaying = false, isPaused = false;
+let currentUtterance = null, currentSpeed = 1.0, selectedVoice = null;
+let voices = [], saveTitle = '';
+// const synth = window.speechSynthesis; // 제거: 매번 호출 시점에 확인
+function getSynth() {
+  // Capacitor 네이티브 플러그인 확인
+  if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+    logDebug('Native Platform Detected');
+    return null; // 네이티브 모드 플래그로 활용
+  }
+
+  if (!window.speechSynthesis) {
+    logDebug('CRITICAL: window.speechSynthesis is undefined');
+    return null;
+  }
+  return window.speechSynthesis;
+}
+
+// 네이티브 TTS 객체 가져오기
+function getNativeTTS() {
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
+    return window.Capacitor.Plugins.TextToSpeech;
+  }
+  return null;
+}
+
+function saveProgress() {
+  if (!fullText || !saveTitle) return;
+  const data = {
+    title: saveTitle,
+    text: fullText,
+    idx: curIdx,
+    total: sentences.length,
+    pct: sentences.length ? Math.round(curIdx / sentences.length * 100) : 0,
+    ts: Date.now()
+  };
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+function loadSavedProgress() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) { return null; }
+}
+
+function showResumeBanners() {
+  const saved = loadSavedProgress();
+  if (!saved) return;
+  const ago = Math.round((Date.now() - saved.ts) / 60000);
+  const agoStr = ago < 1 ? '방금 전' : ago < 60 ? ago + '분 전' : Math.round(ago/60) + '시간 전';
+  ['url','file','text'].forEach(tab => {
+    document.getElementById('rb-title-' + tab).textContent = saved.title;
+    document.getElementById('rb-pos-' + tab).textContent =
+      saved.pct + '% 완료 · ' + saved.idx + '/' + saved.total + '번째 문장 · ' + agoStr;
+    document.getElementById('resume-banner-' + tab).classList.add('show');
+  });
+}
+
+function dismissResume(tab) {
+  document.getElementById('resume-banner-' + tab).classList.remove('show');
+}
+
+function doResume() {
+  const saved = loadSavedProgress();
+  // 현재 로드된 콘텐츠가 있으면 저장 없이도 현재 위치에서 이어듣기
+  if (!saved && !fullText) { alert('먼저 콘텐츠를 불러오세요.'); return; }
+  if (saved) {
+    setContent(saved.text, saved.title, saved.idx);
+    ['url','file','text'].forEach(tab =>
+      document.getElementById('resume-banner-'+tab).classList.remove('show'));
+  }
+  setTimeout(() => startSpeechFrom(curIdx), 200);
+}
+
+// 남성 음성 키워드 (iOS·Android·Windows 공통)
+const MALE_KW = /유준|준호|민준|남성|male|man|daniel|google\s*한국어\s*남|seojun|seo[-_ ]?jun|hyunsu|hyun[-_ ]?su|kangwoo|kang[-_ ]?woo/i;
+// 여성 제외 키워드
+const FEMALE_KW = /여성|female|woman|girl|sora|yuna|지현|나라|nara|ji[-_ ]?hyun|so[-_ ]?ra|yu[-_ ]?na|미경|수진|수연/i;
+
+function pickBestVoice(list) {
+  const ko = list.filter(v => v.lang.startsWith('ko'));
+  const pool = ko.length ? ko : list;
+  // 1순위: 남성 키워드 매칭
+  const male = pool.find(v => MALE_KW.test(v.name) && !FEMALE_KW.test(v.name));
+  if (male) return male;
+  // 2순위: 여성 키워드 없는 첫 번째
+  const neutral = pool.find(v => !FEMALE_KW.test(v.name));
+  if (neutral) return neutral;
+  // 3순위: 그냥 첫 번째
+  return pool[0] || list[0];
+}
+
+function loadVoices() {
+  const s = getSynth();
+  if (!s) { logDebug('loadVoices: No synth available'); return; }
+  voices = s.getVoices();
+  if (!voices.length) return;
+  const ko = voices.filter(v => v.lang.startsWith('ko'));
+  const others = voices.filter(v => !v.lang.startsWith('ko'));
+  const ordered = [...ko, ...others];
+
+  const sel = document.getElementById('voice-select');
+  sel.innerHTML = '';
+  ordered.forEach((v, i) => {
+    const isMale = MALE_KW.test(v.name) && !FEMALE_KW.test(v.name);
+    const isFemale = FEMALE_KW.test(v.name);
+    const tag = isMale ? ' 👨' : isFemale ? ' 👩' : '';
+    const o = document.createElement('option');
+    o.value = voices.indexOf(v);
+    o.textContent = v.name + tag + (v.lang.startsWith('ko') ? '' : '  (' + v.lang + ')');
+    sel.appendChild(o);
+  });
+
+  selectedVoice = pickBestVoice(voices);
+  const bestIdx = voices.indexOf(selectedVoice);
+  sel.value = bestIdx;
+  updateVoiceBadge();
+}
+window.speechSynthesis && (window.speechSynthesis.onvoiceschanged = loadVoices);
+loadVoices();
+
+function selectVoice() {
+  const sel = document.getElementById('voice-select');
+  selectedVoice = voices[parseInt(sel.value)] || voices[0];
+  updateVoiceBadge();
+}
+
+function updateVoiceBadge() {
+  if (!selectedVoice) return;
+  const isMale = MALE_KW.test(selectedVoice.name) && !FEMALE_KW.test(selectedVoice.name);
+  const badge = document.getElementById('voice-badge');
+  if (badge) {
+    badge.textContent = isMale ? '👨 남성' : '👩 여성';
+    badge.style.color = isMale ? 'var(--sky)' : '#D4A0C0';
+  }
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['url','file','text'][i]===tab));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-'+tab).classList.add('active');
+}
+
+async function loadURL() {
+  const url = document.getElementById('url-input').value.trim();
+  if (!url) return;
+  const npTitle = document.getElementById('np-title');
+  npTitle.textContent = 'URL 불러오는 중...';
+
+  const proxies = [
+    u => 'https://api.allorigins.win/get?url=' + encodeURIComponent(u),
+    u => 'https://corsproxy.io/?' + encodeURIComponent(u),
+    u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u),
+  ];
+
+  for (let i = 0; i < proxies.length; i++) {
+    try {
+      npTitle.textContent = '불러오는 중... (' + (i+1) + '/' + proxies.length + ')';
+      const r = await fetch(proxies[i](url), {signal: AbortSignal.timeout(8000)});
+      if (!r.ok) continue;
+      let html;
+      if (i === 0) {
+        const d = await r.json();
+        html = d.contents;
+      } else {
+        html = await r.text();
+      }
+      if (!html || html.trim().length < 50) continue;
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+      ['script','style','nav','footer','header','aside','iframe','noscript'].forEach(t =>
+        doc.querySelectorAll(t).forEach(e => e.remove()));
+      const body = (doc.body ? doc.body.innerText : doc.documentElement.innerText)
+        .replace(/\s+/g, ' ').trim();
+      if (body.length < 50) continue;
+      setContent(body.slice(0, 10000), url);
+      return;
+    } catch(e) { continue; }
+  }
+
+  // 모든 프록시 실패 → 안내
+  npTitle.textContent = '콘텐츠를 불러오세요';
+  showURLFallback(url);
+}
+
+function showURLFallback(url) {
+  const sc = document.getElementById('url-status');
+  const st = document.getElementById('url-status-text');
+  sc.style.background = '#FFF3CD';
+  sc.style.borderColor = 'rgba(245,158,11,0.3)';
+  sc.classList.add('show');
+  st.innerHTML =
+    '⚠️ 이 사이트는 외부 접근을 차단해 자동 로딩이 안 됩니다.<br><br>' +
+    '👉 <b>해결 방법</b><br>' +
+    '① 브라우저에서 해당 페이지를 열고<br>' +
+    '② 본문 텍스트를 전체 선택 후 복사<br>' +
+    '③ <b>텍스트 탭</b>에 붙여넣기 후 [읽기 준비] 버튼 클릭';
+}
+
+function loadFile(input) {
+  const file = input.files[0]; if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  document.getElementById('np-title').textContent = '파일 읽는 중...';
+  document.getElementById('np-sub').textContent = file.name;
+  if (ext === 'txt') {
+    const r = new FileReader();
+    r.onload = e => { setContent(e.target.result, file.name); showReadyToast(); };
+    r.readAsText(file, 'UTF-8');
+  } else if (ext === 'pdf') {
+    const r = new FileReader();
+    r.onload = async e => {
+      try {
+        await loadPdfJs();
+        const pdf = await window.pdfjsLib.getDocument({data: e.target.result}).promise;
+        let text = '';
+        for (let i = 1; i <= Math.min(pdf.numPages, 30); i++) {
+          const pg = await pdf.getPage(i);
+          const tc = await pg.getTextContent();
+          text += tc.items.map(s => s.str).join(' ') + '\n';
+        }
+        if (!text.trim()) { showPdfError(); return; }
+        setContent(text, file.name);
+        showReadyToast();
+      } catch(err) { showPdfError(); }
+    };
+    r.readAsArrayBuffer(file);
+  } else if (ext === 'docx') {
+    showMsg('DOCX: 텍스트를 복사 후 텍스트 탭에 붙여넣기 해주세요.');
+  }
+}
+
+function showReadyToast() {
+  // 재생 버튼 강조 깜빡임
+  const btn = document.getElementById('play-btn');
+  btn.style.boxShadow = '0 0 0 6px rgba(61,214,181,0.35)';
+  btn.style.transform = 'scale(1.12)';
+  setTimeout(() => { btn.style.boxShadow = ''; btn.style.transform = ''; }, 1200);
+  // 상태 안내
+  document.getElementById('np-sub').textContent = '✅ 준비 완료 · 재생 버튼을 눌러주세요';
+}
+
+function showPdfError() {
+  document.getElementById('np-title').textContent = '콘텐츠를 불러오세요';
+  const sc = document.getElementById('file-status');
+  const st = document.getElementById('file-status-text');
+  sc.style.background = '#FFF3CD';
+  sc.style.borderColor = 'rgba(245,158,11,0.3)';
+  sc.classList.add('show');
+  st.innerHTML = '⚠️ PDF 텍스트 추출 실패<br><br>이미지 기반 PDF이거나 보안이 걸려 있을 수 있어요.<br>👉 PDF를 열어 본문을 복사한 후 <b>텍스트 탭</b>에 붙여넣기 해주세요.';
+}
+
+function showMsg(msg) { alert(msg); }
+
+function loadPdfJs() {
+  return new Promise(res => {
+    if (window.pdfjsLib) { res(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = () => {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      res();
+    };
+    document.head.appendChild(s);
+  });
+}
+
+function loadText() {
+  const t = document.getElementById('direct-text').value.trim();
+  if (!t) return;
+  setContent(t, '직접 입력 텍스트');
+}
+
+function setContent(text, title, startIdx) {
+  fullText = text; saveTitle = title;
+  sentences = text.match(/[^.!?。\n]+[.!?。\n]?/g) || [text];
+  sentences = sentences.filter(s => s.trim().length > 2);
+  curIdx = startIdx || 0;
+  document.getElementById('np-title').textContent = title;
+  document.getElementById('np-sub').textContent = sentences.length + '개 문장 · 한국어 읽기 준비';
+  document.getElementById('time-total').textContent = formatTime(sentences.length * 3);
+  updateProgress();
+  const activePanel = document.querySelector('.panel.active').id.replace('panel-','');
+  const sc = document.getElementById(activePanel + '-status');
+  const st = document.getElementById(activePanel + '-status-text');
+  if (sc && st) { st.textContent = text.slice(0,200) + (text.length>200?'…':''); sc.classList.add('show'); }
+}
+
+function togglePlay() {
+  logDebug('Toggle Play: fullText length=' + (fullText ? fullText.length : 0));
+  if (!fullText) { alert('먼저 콘텐츠를 불러오세요.'); return; }
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(() => logDebug('AudioContext Resumed'));
+    }
+  } catch(e) { logDebug('AudioContext Error: ' + e.message); }
+
+  if (isPlaying) {
+    logDebug('Pausing Speech');
+    pauseSpeech();
+  } else {
+    logDebug('Starting Speech from index ' + curIdx);
+    startSpeechFrom(curIdx);
+  }
+}
+
+function startSpeechFrom(idx) {
+  logDebug('startSpeechFrom: ' + idx);
+  
+  const ntts = getNativeTTS();
+  if (ntts) {
+    ntts.stop().catch(() => {});
+  } else {
+    const s = getSynth();
+    if (s) s.cancel();
+  }
+
+  setTimeout(() => {
+    curIdx = Math.max(0, Math.min(idx, sentences.length-1));
+    isPlaying = true; isPaused = false;
+    setPlayIcon(true);
+    speakNext();
+  }, 150);
+}
+
+async function speakNext() {
+  if (!isPlaying || curIdx >= sentences.length) {
+    logDebug('Speech Finished or Stopped');
+    isPlaying = false; setPlayIcon(false);
+    if (curIdx >= sentences.length) document.getElementById('progress-fill').style.width = '100%';
+    saveProgress();
+    return;
+  }
+  const sentence = sentences[curIdx].trim();
+  if (!sentence) { curIdx++; speakNext(); return; }
+  
+  logDebug('Speaking sentence ' + curIdx + ': ' + sentence.slice(0, 20) + '...');
+
+  const ntts = getNativeTTS();
+  if (ntts) {
+    // 네이티브 TTS 실행
+    try {
+      logDebug('Executing Native TTS...');
+      await ntts.speak({
+        text: sentence,
+        lang: 'ko-KR',
+        rate: currentSpeed,
+        pitch: 1.0,
+        volume: 1.0,
+        category: 'ambient'
+      });
+      // 완료 후 다음 문장
+      logDebug('Native Utterance Ended');
+      curIdx++;
+      updateProgress();
+      saveProgress();
+      speakNext();
+    } catch (err) {
+      logDebug('Native TTS Error: ' + err.message);
+      curIdx++; speakNext();
+    }
+  } else {
+    // 웹뷰 TTS 실행 (기존 로직)
+    const s = getSynth();
+    if (!s) { logDebug('speakNext: No synth available'); return; }
+
+    currentUtterance = new SpeechSynthesisUtterance(sentence);
+    currentUtterance.lang = 'ko-KR';
+    currentUtterance.rate = currentSpeed;
+    currentUtterance.pitch = 1.0;
+    
+    if (selectedVoice) {
+      currentUtterance.voice = selectedVoice;
+      logDebug('Using voice: ' + selectedVoice.name);
+    }
+
+    currentUtterance.onend = () => {
+      logDebug('Utterance Ended');
+      curIdx++;
+      updateProgress();
+      saveProgress();
+      speakNext();
+    };
+    currentUtterance.onerror = (e) => {
+      logDebug('Utterance Error: ' + e.error);
+      curIdx++; speakNext(); 
+    };
+    
+    try {
+      s.speak(currentUtterance);
+    } catch(err) {
+      logDebug('Speak Catch Error: ' + err.message);
+    }
+  }
+}
+
+function pauseSpeech() {
+  const ntts = getNativeTTS();
+  if (ntts) {
+    ntts.stop().catch(() => {});
+  } else {
+    const s = getSynth();
+    if (s) s.cancel();
+  }
+  isPlaying = false; isPaused = true;
+  setPlayIcon(false);
+  saveProgress(); 
+}
+
+function restartSpeech() {
+  const s = getSynth();
+  if (s) s.cancel();
+  isPlaying = false; isPaused = false; curIdx = 0;
+  updateProgress(); setPlayIcon(false);
+  if (fullText) setTimeout(() => startSpeechFrom(0), 100);
+}
+
+function skipForward() {
+  if (!fullText) return;
+  startSpeechFrom(Math.min(curIdx + 10, sentences.length - 1));
+}
+
+function setSpeed(s) {
+  currentSpeed = s;
+  document.querySelectorAll('.speed-btn').forEach(b => b.classList.toggle('active', parseFloat(b.textContent) === s));
+  if (isPlaying) {
+    const idx = curIdx; 
+    const s = getSynth();
+    if (s) s.cancel();
+    setTimeout(() => startSpeechFrom(idx), 80); 
+  }
+}
+
+function seekProgress(e) {
+  if (!sentences.length) return;
+  startSpeechFrom(Math.floor((e.offsetX / e.currentTarget.offsetWidth) * sentences.length));
+}
+
+function updateProgress() {
+  const pct = sentences.length ? Math.round(curIdx / sentences.length * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('time-cur').textContent = formatTime(curIdx * 3);
+  document.getElementById('np-sub').textContent = curIdx + '/' + sentences.length + '번째 문장';
+}
+
+function setPlayIcon(playing) {
+  document.getElementById('play-icon').innerHTML = playing
+    ? '<rect x="6" y="4" width="4" height="16" rx="1" fill="white"/><rect x="14" y="4" width="4" height="16" rx="1" fill="white"/>'
+    : '<polygon points="5,3 19,12 5,21" fill="white"/>';
+  document.getElementById('play-label').textContent = playing ? '일시정지' : '재생';
+}
+
+function formatTime(secs) {
+  const m = Math.floor(secs/60), s = secs%60;
+  return m + ':' + String(s).padStart(2,'0');
+}
+
+window.addEventListener('pagehide', saveProgress);
+window.addEventListener('beforeunload', saveProgress);
+window.addEventListener('visibilitychange', async () => {
+  if (document.hidden) {
+    // Wake Lock ON이면 재생 유지, 진행 상태만 저장
+    if (wakeLock) {
+      saveProgress();
+    } else {
+      pauseSpeech();
+      saveProgress();
+    }
+  } else {
+    // 화면 다시 켜질 때 Wake Lock 재취득
+    if (document.getElementById('wakelock-toggle') &&
+        document.getElementById('wakelock-toggle').checked) {
+      await requestWakeLock();
+    }
+  }
+});
+
+showResumeBanners();
+</script>
+</body>
+</html>

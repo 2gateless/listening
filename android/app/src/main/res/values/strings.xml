@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Listening</string>
+    <string name="title_activity_main">Listening</string>
+    <string name="package_name">com.gateless.listening</string>
+    <string name="custom_url_scheme">com.gateless.listening</string>
+</resources>
