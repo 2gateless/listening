@@ -172,23 +172,22 @@
     text-transform: uppercase;
     margin-bottom: 8px;
   }
-  .url-row { display: flex; gap: 8px; align-items: center; }
+  .url-row { display: flex; flex-direction: column; gap: 12px; }
   .url-row input {
-    flex: 1; height: 42px;
+    width: 100%; height: 54px;
     border: 1.5px solid var(--border);
-    border-radius: 10px; padding: 0 12px;
-    font-size: 14px; color: var(--text-dark);
+    border-radius: 12px; padding: 0 16px;
+    font-size: 16px; color: var(--text-dark);
     background: var(--bg); outline: none;
   }
-  .url-row input:focus { border-color: var(--mint); }
+  .url-row input:focus { border-color: var(--mint); box-shadow: 0 0 0 3px rgba(61,214,181,0.1); }
   .url-row input::placeholder { color: var(--text-light); }
   .btn-load {
-    height: 42px; padding: 0 16px;
+    width: 100%; height: 48px;
     background: var(--mint); color: white;
-    border: none; border-radius: 10px;
-    font-size: 14px; font-weight: 600;
-    cursor: pointer; white-space: nowrap;
-    transition: opacity 0.2s;
+    border: none; border-radius: 12px;
+    font-size: 15px; font-weight: 700;
+    cursor: pointer; transition: all 0.2s;
   }
   .btn-load:hover { opacity: 0.85; }
   .btn-load:active { transform: scale(0.97); }
@@ -235,9 +234,8 @@
   .status-card.show { display: block; }
   .status-title { font-size: 12px; font-weight: 600; color: var(--text-mid); margin-bottom: 6px; }
   .status-text {
-    font-size: 13px; color: var(--text-dark); line-height: 1.5;
-    max-height: 80px; overflow: hidden; text-overflow: ellipsis;
-    display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical;
+    font-size: 13px; color: var(--text-dark); line-height: 1.6;
+    max-height: 250px; overflow-y: auto;
   }
 
   .resume-banner {
@@ -286,8 +284,9 @@
     max-width: 430px; margin: 0 auto;
     background: var(--card);
     border-top: 1px solid var(--border);
-    padding: 14px 24px 28px;
+    padding: 16px 24px 30px;
     box-shadow: 0 -8px 32px rgba(61,214,181,0.1);
+    z-index: 50;
   }
   .now-playing { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
   .np-icon {
@@ -345,28 +344,16 @@
   .ctrl-label { font-size: 9px; color: var(--text-light); margin-top: 3px; text-align: center; }
   .ctrl-wrap { display: flex; flex-direction: column; align-items: center; }
 
-  .voice-row {
-    display: flex; align-items: center; gap: 8px;
-    margin-bottom: 12px; padding: 8px 12px;
-    background: var(--sky-light); border-radius: 12px;
+  .wakelock-btn {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 10px; border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--bg); cursor: pointer;
+    transition: all 0.2s;
   }
-  .voice-label { font-size: 12px; color: var(--text-mid); font-weight: 500; white-space: nowrap; }
-  .voice-select {
-    flex: 1; border: 1px solid rgba(91,196,240,0.3);
-    border-radius: 8px; padding: 5px 8px;
-    font-size: 12px; color: var(--text-dark);
-    background: white; outline: none;
-  }
-  .gender-btn {
-    padding: 5px 12px; border-radius: 20px;
-    border: 1.5px solid var(--border);
-    background: var(--bg); font-size: 12px; font-weight: 600;
-    color: var(--text-mid); cursor: pointer; transition: all 0.15s;
-    white-space: nowrap;
-  }
-  .gender-btn.active {
-    background: var(--sky); border-color: var(--sky); color: white;
-  }
+  .wakelock-btn:active { transform: scale(0.95); }
+  .wakelock-btn.on { border-color: var(--mint); background: var(--mint-light); }
 
 /* ── 시작 오버레이 ── */
   .overlay {
@@ -448,6 +435,38 @@
     margin-bottom: 40px;
   }
   .btn-start:active { opacity: 0.85; }
+
+  /* 최근 항목 스타일 */
+  .history-section {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1.5px dashed var(--border);
+  }
+  .history-title {
+    font-size: 12px; font-weight: 700;
+    color: var(--text-mid);
+    margin-bottom: 12px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .history-list {
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .history-item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .history-item:hover { background: var(--mint-light); border-color: var(--mint-mid); }
+  .history-item:active { transform: scale(0.98); }
+  .hi-icon { font-size: 16px; }
+  .hi-info { flex: 1; min-width: 0; }
+  .hi-title {
+    font-size: 13px; font-weight: 600; color: var(--text-dark);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hi-meta { font-size: 11px; color: var(--text-light); margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -465,26 +484,7 @@
   <h2>Listening</h2>
   <div class="tagline">이동 중 읽어드립니다</div>
 
-  <!-- 남성 음성 안내 -->
-  <div class="setup-card" style="margin-bottom:16px;">
-    <div class="setup-card-title">👨 한국어 남성 음성 설치 방법</div>
-    <div class="setup-step">
-      <div class="step-num">1</div>
-      <div class="step-text">폰 <b>설정</b> → <b>일반 관리</b> → <b>접근성</b></div>
-    </div>
-    <div class="setup-step">
-      <div class="step-num">2</div>
-      <div class="step-text"><b>텍스트 음성 변환</b> → <b>Google TTS 엔진 설정(⚙)</b></div>
-    </div>
-    <div class="setup-step">
-      <div class="step-num">3</div>
-      <div class="step-text"><b>언어 → 한국어</b> 선택 후 음성 목록에서<br><b>남성 음성 옆 ⬇ 다운로드</b></div>
-    </div>
-    <div class="setup-step">
-      <div class="step-num">4</div>
-      <div class="step-text">다운로드 완료 후 앱을 <b>새로고침</b>하면<br>👨 남성 버튼이 실제 남성 음성으로 전환돼요</div>
-    </div>
-  </div>
+
 
   <!-- Wake Lock 토글 -->
   <div class="wakelock-row">
@@ -536,17 +536,11 @@
     <h1>Listening</h1>
     <div class="subtitle">읽어드립니다</div>
   </div>
-  <div class="bt-indicator">
-    <div class="bt-dot"></div>BT
-  </div>
-  <button class="wakelock-btn" id="wakelock-btn" onclick="toggleWakeLock()">
-    <svg width="16" height="11" viewBox="0 0 28 18" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="1" y="2" width="23" height="14" rx="3" stroke="#3DD6B5" stroke-width="1.8" fill="none"/>
-      <rect x="24.5" y="6" width="2.5" height="6" rx="1.2" fill="#3DD6B5"/>
-      <rect id="wl-fill" x="3" y="4" width="19" height="10" rx="1.8" fill="#3DD6B5"/>
-      <path d="M15 3.5L11 9.5H14L13 14.5L17 8.5H14L15 3.5Z" fill="white"/>
+  <button class="wakelock-btn on" id="wakelock-btn" onclick="toggleWakeLock()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="2" y="7" width="16" height="10" rx="2"/><path d="M22 11v2"/><path id="wl-svg-fill" d="M6 10h10" stroke="var(--mint)"/>
     </svg>
-    <span id="wl-label" style="font-size:10px;font-weight:600;color:var(--mint);white-space:nowrap;">화면꺼짐방지 ON</span>
+    <span id="wl-label" style="font-size:11px;font-weight:700;color:var(--text-dark);">방지 ON</span>
   </button>
 </header>
 
@@ -571,17 +565,21 @@
     </div>
   </div>
   <div class="input-card">
-    <div class="input-row">
-      <input type="text" id="url-input" placeholder="웹 주소 붙여넣기" style="min-width: 0;">
-      <button onclick="loadURL()" style="flex-shrink: 0;">불러오기</button>
+    <div class="url-row">
+      <input type="text" id="url-input" placeholder="웹 주소를 여기에 붙여넣으세요">
+      <button class="btn-load" onclick="loadURL()">불러오기</button>
     </div>
   </div>
-  <div class="status-card" id="url-status">
-    <div class="status-title">추출된 내용</div>
-    <div class="status-text" id="url-status-text"></div>
+    <div class="status-card" id="url-status">
+      <div class="status-title">추출된 내용</div>
+      <div class="status-text" id="url-status-text"></div>
+    </div>
+    <div id="url-history-container" class="history-section" style="display:none;">
+      <div class="history-title">🕒 최근 방문한 사이트</div>
+      <div id="url-history-list" class="history-list"></div>
+    </div>
+    <div class="content-spacer"></div>
   </div>
-  <div class="content-spacer"></div>
-</div>
 
 <!-- File Panel -->
 <div class="panel" id="panel-file">
@@ -603,12 +601,16 @@
     <div class="upload-title">파일 선택</div>
     <div class="upload-sub">PDF · DOCX · TXT 지원</div>
   </div>
-  <div class="status-card" id="file-status">
-    <div class="status-title">파일 내용</div>
-    <div class="status-text" id="file-status-text"></div>
+    <div class="status-card" id="file-status">
+      <div class="status-title">파일 내용</div>
+      <div class="status-text" id="file-status-text"></div>
+    </div>
+    <div id="file-history-container" class="history-section" style="display:none;">
+      <div class="history-title">🕒 최근 열어본 문서</div>
+      <div id="file-history-list" class="history-list"></div>
+    </div>
+    <div class="content-spacer"></div>
   </div>
-  <div class="content-spacer"></div>
-</div>
 
 <!-- Text Panel -->
 <div class="panel" id="panel-text">
@@ -649,26 +651,7 @@
     </div>
   </div>
 
-  <div class="voice-row">
-    <span class="voice-label">🎙 음성</span>
-    <div style="display:flex;gap:6px;margin-left:auto;">
-      <button id="btn-male" class="gender-btn active" onclick="setGender('male')">👨 남성</button>
-      <button id="btn-female" class="gender-btn" onclick="setGender('female')">👩 여성</button>
-    </div>
-    <label class="wakelock-label" for="wakelock-toggle">
-      <div class="wakelock-icon" id="wakelock-status-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="2" y="7" width="16" height="10" rx="2"/>
-          <path d="M22 11v2"/>
-          <path d="M6 10h10" id="wakelock-battery-fill" />
-        </svg>
-      </div>
-      <div class="wakelock-text">
-        <div class="wakelock-title" id="wakelock-title">화면꺼짐방지 ON</div>
-      </div>
-      <input type="checkbox" id="wakelock-toggle" checked style="display:none">
-    </label>
-  </div>
+
 
   <div class="progress-wrap">
     <div class="progress-bar-bg" id="progress-bar" onclick="seekProgress(event)">
@@ -751,18 +734,17 @@ async function toggleWakeLock() {
 }
 
 function updateWakeLockIcon(on) {
-  const fill = document.getElementById('wl-fill');
+  const btn = document.getElementById('wakelock-btn');
+  const fill = document.getElementById('wl-svg-fill');
   const label = document.getElementById('wl-label');
   if (on) {
-    fill.setAttribute('width', '19');
-    fill.setAttribute('fill', '#3DD6B5');
-    label.textContent = '화면꺼짐방지 ON';
-    label.style.color = 'var(--mint)';
+    btn.classList.add('on');
+    if (fill) fill.setAttribute('stroke', 'var(--mint)');
+    label.textContent = '방지 ON';
   } else {
-    fill.setAttribute('width', '5');
-    fill.setAttribute('fill', '#ccc');
-    label.textContent = '화면꺼짐방지 OFF';
-    label.style.color = 'var(--text-light)';
+    btn.classList.remove('on');
+    if (fill) fill.setAttribute('stroke', '#ccc');
+    label.textContent = '방지 OFF';
   }
 }
 
@@ -789,9 +771,14 @@ window.onerror = (m, s, l, c, e) => {
 
 function startApp() {
   document.getElementById('overlay').classList.add('hidden');
+  localStorage.setItem('listening-setup-done', 'true');
   requestWakeLock();
 }
 
+
+const SAVE_KEY = 'listening_progress';
+const URL_HISTORY_KEY = 'listening_url_history';
+const DOC_HISTORY_KEY = 'listening_doc_history';
 
 let fullText = '', sentences = [], curIdx = 0;
 let isPlaying = false, isPaused = false;
@@ -870,68 +857,73 @@ function doResume() {
   setTimeout(() => startSpeechFrom(curIdx), 200);
 }
 
-// 남성 음성 키워드 (iOS·Android·Windows 공통)
-const MALE_KW = /유준|준호|민준|남성|male|man|daniel|google\s*한국어\s*남|seojun|seo[-_ ]?jun|hyunsu|hyun[-_ ]?su|kangwoo|kang[-_ ]?woo/i;
-// 여성 제외 키워드
-const FEMALE_KW = /여성|female|woman|girl|sora|yuna|지현|나라|nara|ji[-_ ]?hyun|so[-_ ]?ra|yu[-_ ]?na|미경|수진|수연/i;
-
-function pickBestVoice(list) {
-  const ko = list.filter(v => v.lang.startsWith('ko'));
-  const pool = ko.length ? ko : list;
-  // 1순위: 남성 키워드 매칭
-  const male = pool.find(v => MALE_KW.test(v.name) && !FEMALE_KW.test(v.name));
-  if (male) return male;
-  // 2순위: 여성 키워드 없는 첫 번째
-  const neutral = pool.find(v => !FEMALE_KW.test(v.name));
-  if (neutral) return neutral;
-  // 3순위: 그냥 첫 번째
-  return pool[0] || list[0];
+// ── 히스토리 관리 로직 ──
+function addUrlToHistory(url) {
+  let history = JSON.parse(localStorage.getItem(URL_HISTORY_KEY) || '[]');
+  history = history.filter(h => h.url !== url);
+  history.unshift({ url, ts: Date.now() });
+  localStorage.setItem(URL_HISTORY_KEY, JSON.stringify(history.slice(0, 5)));
+  renderHistory();
 }
 
-function loadVoices() {
-  const s = getSynth();
-  if (!s) { logDebug('loadVoices: No synth available'); return; }
-  voices = s.getVoices();
-  if (!voices.length) return;
-  const ko = voices.filter(v => v.lang.startsWith('ko'));
-  const others = voices.filter(v => !v.lang.startsWith('ko'));
-  const ordered = [...ko, ...others];
-
-  const sel = document.getElementById('voice-select');
-  sel.innerHTML = '';
-  ordered.forEach((v, i) => {
-    const isMale = MALE_KW.test(v.name) && !FEMALE_KW.test(v.name);
-    const isFemale = FEMALE_KW.test(v.name);
-    const tag = isMale ? ' 👨' : isFemale ? ' 👩' : '';
-    const o = document.createElement('option');
-    o.value = voices.indexOf(v);
-    o.textContent = v.name + tag + (v.lang.startsWith('ko') ? '' : '  (' + v.lang + ')');
-    sel.appendChild(o);
-  });
-
-  selectedVoice = pickBestVoice(voices);
-  const bestIdx = voices.indexOf(selectedVoice);
-  sel.value = bestIdx;
-  updateVoiceBadge();
-}
-window.speechSynthesis && (window.speechSynthesis.onvoiceschanged = loadVoices);
-loadVoices();
-
-function selectVoice() {
-  const sel = document.getElementById('voice-select');
-  selectedVoice = voices[parseInt(sel.value)] || voices[0];
-  updateVoiceBadge();
+function addDocToHistory(title, text) {
+  let history = JSON.parse(localStorage.getItem(DOC_HISTORY_KEY) || '[]');
+  history = history.filter(h => h.title !== title);
+  history.unshift({ title, text: text.slice(0, 50000), ts: Date.now() }); // 최대 5만자 저장
+  localStorage.setItem(DOC_HISTORY_KEY, JSON.stringify(history.slice(0, 5)));
+  renderHistory();
 }
 
-function updateVoiceBadge() {
-  if (!selectedVoice) return;
-  const isMale = MALE_KW.test(selectedVoice.name) && !FEMALE_KW.test(selectedVoice.name);
-  const badge = document.getElementById('voice-badge');
-  if (badge) {
-    badge.textContent = isMale ? '👨 남성' : '👩 여성';
-    badge.style.color = isMale ? 'var(--sky)' : '#D4A0C0';
+function renderHistory() {
+  // URL 히스토리
+  const urlHistory = JSON.parse(localStorage.getItem(URL_HISTORY_KEY) || '[]');
+  const urlContainer = document.getElementById('url-history-container');
+  const urlList = document.getElementById('url-history-list');
+  if (urlHistory.length > 0) {
+    urlContainer.style.display = 'block';
+    urlList.innerHTML = urlHistory.map(h => `
+      <div class="history-item" onclick="loadFromHistory('url', '${h.url}')">
+        <div class="hi-icon">🔗</div>
+        <div class="hi-info">
+          <div class="hi-title">${h.url}</div>
+          <div class="hi-meta">${new Date(h.ts).toLocaleString()}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // 문서 히스토리
+  const docHistory = JSON.parse(localStorage.getItem(DOC_HISTORY_KEY) || '[]');
+  const docContainer = document.getElementById('file-history-container');
+  const docList = document.getElementById('file-history-list');
+  if (docHistory.length > 0) {
+    docContainer.style.display = 'block';
+    docList.innerHTML = docHistory.map((h, i) => `
+      <div class="history-item" onclick="loadFromHistory('doc', ${i})">
+        <div class="hi-icon">📄</div>
+        <div class="hi-info">
+          <div class="hi-title">${h.title}</div>
+          <div class="hi-meta">${Math.round(h.text.length/1000)}KB · ${new Date(h.ts).toLocaleString()}</div>
+        </div>
+      </div>
+    `).join('');
   }
 }
+
+async function loadFromHistory(type, val) {
+  if (type === 'url') {
+    document.getElementById('url-input').value = val;
+    await loadURL();
+  } else {
+    const history = JSON.parse(localStorage.getItem(DOC_HISTORY_KEY) || '[]');
+    const item = history[val];
+    if (item) setContent(item.text, item.title);
+  }
+}
+
+
+
+
 
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['url','file','text'][i]===tab));
@@ -971,7 +963,8 @@ async function loadURL() {
       const body = (doc.body ? doc.body.innerText : doc.documentElement.innerText)
         .replace(/\s+/g, ' ').trim();
       if (body.length < 50) continue;
-      setContent(body.slice(0, 10000), url);
+      setContent(body.slice(0, 100000), url);
+      addUrlToHistory(url);
       return;
     } catch(e) { continue; }
   }
@@ -1018,6 +1011,7 @@ function loadFile(input) {
         }
         if (!text.trim()) { showPdfError(); return; }
         setContent(text, file.name);
+        addDocToHistory(file.name, text);
         showReadyToast();
       } catch(err) { showPdfError(); }
     };
@@ -1152,7 +1146,7 @@ async function speakNext() {
       logDebug('Native Utterance Ended');
       curIdx++;
       updateProgress();
-      saveProgress();
+      if (curIdx % 5 === 0) saveProgress(); // 5문장마다 자동 저장
       speakNext();
     } catch (err) {
       logDebug('Native TTS Error: ' + err.message);
@@ -1177,7 +1171,7 @@ async function speakNext() {
       logDebug('Utterance Ended');
       curIdx++;
       updateProgress();
-      saveProgress();
+      if (curIdx % 5 === 0) saveProgress(); // 5문장마다 자동 저장
       speakNext();
     };
     currentUtterance.onerror = (e) => {
@@ -1275,6 +1269,12 @@ window.addEventListener('visibilitychange', async () => {
 });
 
 showResumeBanners();
+renderHistory();
+
+// 첫 방문이 아니면 안내 화면 건너뛰기
+if (localStorage.getItem('listening-setup-done') === 'true') {
+  startApp();
+}
 </script>
 </body>
 </html>
