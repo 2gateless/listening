@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>Listening</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --mint:#3DD6B5;--mint-light:#E0FAF5;--mint-mid:#A8EDDF;
+  --sky:#5BC4F0;--sky-light:#E3F5FD;
+  --text-dark:#1A3A35;--text-mid:#4A7A72;--text-light:#8FBDB8;
+  --bg:#F2FDFB;--card:#FFFFFF;--border:rgba(61,214,181,0.2);
+  --amber:#F59E0B;--amber-light:#FFFBEB;
+}
+body{font-family:-apple-system,'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text-dark);min-height:100vh;display:flex;flex-direction:column;max-width:430px;margin:0 auto;}
+
+/* ── OVERLAY ── */
+.overlay{position:fixed;inset:0;z-index:200;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 24px;text-align:center;overflow-y:auto;}
+.overlay.hidden{display:none;}
+.overlay-icon{width:68px;height:68px;background:var(--mint);border-radius:20px;display:flex;align-items:center;justify-content:center;margin-bottom:16px;}
+.overlay h2{font-size:22px;font-weight:700;color:var(--text-dark);margin-bottom:4px;}
+.overlay .tagline{font-size:13px;color:var(--text-light);margin-bottom:24px;}
+.setup-card{width:100%;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:14px;text-align:left;}
+.setup-card-title{font-size:13px;font-weight:700;color:var(--text-dark);margin-bottom:12px;}
+.setup-step{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;}
+.setup-step:last-child{margin-bottom:0;}
+.step-num{width:20px;height:20px;flex-shrink:0;background:var(--mint-light);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--mint);}
+.step-text{font-size:12px;color:var(--text-mid);line-height:1.5;}
+.step-text b{color:var(--text-dark);}
+.btn-start{width:100%;height:50px;background:var(--mint);color:white;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;margin-top:4px;}
+
+/* ── HEADER ── */
+header{display:flex;align-items:center;gap:10px;padding:14px 20px 10px;background:var(--card);border-bottom:1px solid var(--border);}
+.app-icon{width:36px;height:36px;background:var(--mint);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+header h1{font-size:18px;font-weight:700;color:var(--text-dark);}
+header .subtitle{font-size:11px;color:var(--text-light);margin-top:1px;}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:6px;}
+.bt-indicator{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--mint);background:var(--mint-light);padding:3px 8px;border-radius:20px;}
+.bt-dot{width:5px;height:5px;background:var(--mint);border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+/* ── PLAYER (상단 고정) ── */
+.player-section{position:sticky;top:0;z-index:10;background:var(--card);border-bottom:1px solid var(--border);padding:10px 20px 12px;box-shadow:0 3px 12px rgba(61,214,181,0.1);}
+.now-playing{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.np-icon{width:30px;height:30px;background:var(--mint);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.np-title{font-size:12px;font-weight:600;color:var(--text-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;}
+.np-sub{font-size:10px;color:var(--text-light);margin-top:1px;}
+.voice-row{display:flex;align-items:center;gap:6px;margin-bottom:7px;padding:5px 10px;background:var(--sky-light);border-radius:10px;}
+.voice-label{font-size:11px;color:var(--text-mid);font-weight:500;white-space:nowrap;}
+.gender-btn{padding:3px 10px;border-radius:20px;border:1.5px solid var(--border);background:var(--bg);font-size:11px;font-weight:600;color:var(--text-mid);cursor:pointer;}
+.gender-btn.active{background:var(--sky);border-color:var(--sky);color:white;}
+.progress-wrap{margin-bottom:7px;}
+.progress-bar-bg{width:100%;height:4px;background:var(--border);border-radius:4px;cursor:pointer;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--mint),var(--sky));border-radius:4px;transition:width 0.3s;width:0%;}
+.progress-times{display:flex;justify-content:space-between;margin-top:3px;font-size:10px;color:var(--text-light);}
+.speed-row{display:flex;gap:4px;margin-bottom:7px;justify-content:center;}
+.speed-btn{padding:3px 8px;border-radius:20px;border:1px solid var(--border);background:var(--bg);font-size:11px;font-weight:500;color:var(--text-mid);cursor:pointer;}
+.speed-btn.active{background:var(--mint);border-color:var(--mint);color:white;}
+.controls{display:flex;align-items:center;justify-content:center;gap:14px;}
+.ctrl-btn{width:42px;height:42px;border-radius:50%;border:1px solid var(--border);background:var(--bg);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-mid);}
+.ctrl-btn.primary{width:52px;height:52px;background:var(--mint);border-color:var(--mint);color:white;box-shadow:0 3px 12px rgba(61,214,181,0.35);}
+.ctrl-btn.resume-ctrl{border-color:rgba(245,158,11,0.3);background:var(--amber-light);color:var(--amber);}
+.ctrl-label{font-size:9px;color:var(--text-light);margin-top:2px;text-align:center;}
+.ctrl-wrap{display:flex;flex-direction:column;align-items:center;}
+
+/* ── TABS ── */
+.tabs{display:flex;background:var(--card);padding:0 20px;border-bottom:1px solid var(--border);}
+.tab{flex:1;padding:10px 0;font-size:12px;font-weight:500;color:var(--text-light);text-align:center;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;}
+.tab.active{color:var(--mint);border-bottom-color:var(--mint);}
+
+/* ── PANELS ── */
+.panel{display:none;padding:16px 20px;}
+.panel.active{display:block;}
+.input-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;}
+.input-label{font-size:10px;font-weight:600;color:var(--text-light);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:7px;}
+
+/* URL 입력 + 지우기 버튼 */
+.url-row{display:flex;gap:8px;align-items:center;}
+.url-wrap{position:relative;flex:1;}
+.url-wrap input{width:100%;height:42px;border:1.5px solid var(--border);border-radius:10px;padding:0 34px 0 12px;font-size:14px;color:var(--text-dark);background:var(--bg);outline:none;}
+.url-wrap input:focus{border-color:var(--mint);}
+.url-wrap input::placeholder{color:var(--text-light);}
+.url-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-light);font-size:18px;line-height:1;padding:2px;display:none;}
+.url-wrap input:not(:placeholder-shown) ~ .url-clear{display:block;}
+.btn-load{height:42px;padding:0 14px;background:var(--mint);color:white;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
+
+.upload-area{background:var(--bg);border:2px dashed var(--mint-mid);border-radius:12px;padding:24px 16px;text-align:center;cursor:pointer;position:relative;}
+.upload-area input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;}
+.upload-icon{font-size:26px;margin-bottom:6px;}
+.upload-title{font-size:14px;font-weight:600;color:var(--text-dark);margin-bottom:3px;}
+.upload-sub{font-size:11px;color:var(--text-light);}
+.text-input-area{width:100%;min-height:110px;border:1.5px solid var(--border);border-radius:10px;padding:10px;font-size:14px;color:var(--text-dark);background:var(--bg);outline:none;resize:vertical;font-family:inherit;line-height:1.6;}
+.text-input-area:focus{border-color:var(--mint);}
+.text-input-area::placeholder{color:var(--text-light);}
+.btn-full{width:100%;height:42px;background:var(--mint);color:white;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;}
+
+/* 추출 내용 — 한 줄로 축소 */
+.status-card{background:var(--mint-light);border:1px solid var(--mint-mid);border-radius:10px;padding:8px 12px;margin-top:10px;display:none;}
+.status-card.show{display:flex;align-items:center;gap:8px;}
+.status-dot{width:6px;height:6px;flex-shrink:0;background:var(--mint);border-radius:50%;}
+.status-text{font-size:11px;color:var(--text-mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* RESUME BANNER */
+.resume-banner{display:none;background:var(--amber-light);border:1px solid rgba(245,158,11,0.25);border-radius:12px;padding:12px 14px;margin-bottom:14px;align-items:center;gap:10px;}
+.resume-banner.show{display:flex;}
+.resume-icon{width:34px;height:34px;flex-shrink:0;background:rgba(245,158,11,0.15);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.resume-info{flex:1;min-width:0;}
+.resume-label{font-size:10px;font-weight:600;color:var(--amber);margin-bottom:2px;}
+.resume-title{font-size:12px;font-weight:600;color:var(--text-dark);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.resume-pos{font-size:10px;color:var(--text-mid);margin-top:1px;}
+.resume-btns{display:flex;flex-direction:column;gap:5px;flex-shrink:0;}
+.btn-resume{padding:5px 12px;background:var(--amber);color:white;border:none;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;}
+.btn-dismiss{padding:4px 12px;background:transparent;color:var(--text-light);border:1px solid var(--border);border-radius:7px;font-size:10px;cursor:pointer;}
+.content-spacer{height:20px;}
+</style>
+</head>
+<body>
+
+<!-- 시작 오버레이 -->
+<div class="overlay" id="overlay">
+  <div class="overlay-icon">
+    <svg width="36" height="36" viewBox="0 0 26 26" fill="none">
+      <path d="M5 13C5 8.58 8.58 5 13 5C17.42 5 21 8.58 21 13" stroke="white" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+      <rect x="3" y="13" width="4" height="6" rx="2" fill="white"/>
+      <rect x="19" y="13" width="4" height="6" rx="2" fill="white"/>
+      <text x="11.5" y="16.5" font-size="7" fill="#3DD6B5" font-weight="bold" font-family="Arial">♪</text>
+    </svg>
+  </div>
+  <h2>Listening</h2>
+  <div class="tagline">이동 중 읽어드립니다</div>
+
+  <div class="setup-card">
+    <div class="setup-card-title">🔋 배터리 절전 해제 (최초 1회)</div>
+    <div class="setup-step"><div class="step-num">1</div><div class="step-text">폰 <b>설정</b> → <b>앱</b> → <b>Listening</b> 앱 선택</div></div>
+    <div class="setup-step"><div class="step-num">2</div><div class="step-text"><b>배터리</b> → <b>제한 없음</b> 선택</div></div>
+    <div class="setup-step"><div class="step-num">3</div><div class="step-text">삼성의 경우 <b>배터리 → 백그라운드 사용 제한</b>에서 Listening 해제</div></div>
+  </div>
+
+  <div class="setup-card">
+    <div class="setup-card-title">👨 한국어 남성 음성 설치 (선택)</div>
+    <div class="setup-step"><div class="step-num">1</div><div class="step-text">설정 → 일반 관리 → 접근성</div></div>
+    <div class="setup-step"><div class="step-num">2</div><div class="step-text">텍스트 음성 변환 → Google TTS 설정(⚙)</div></div>
+    <div class="setup-step"><div class="step-num">3</div><div class="step-text">언어 → 한국어 → <b>남성 음성 ⬇ 다운로드</b></div></div>
+  </div>
+
+  <button class="btn-start" onclick="startApp()">시작하기</button>
+</div>
+
+<header>
+  <div class="app-icon">
+    <svg width="22" height="22" viewBox="0 0 26 26" fill="none">
+      <path d="M5 13C5 8.58 8.58 5 13 5C17.42 5 21 8.58 21 13" stroke="white" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+      <rect x="3" y="13" width="4" height="6" rx="2" fill="white"/>
+      <rect x="19" y="13" width="4" height="6" rx="2" fill="white"/>
+      <text x="11.5" y="16.5" font-size="7" fill="#3DD6B5" font-weight="bold" font-family="Arial">♪</text>
+    </svg>
+  </div>
+  <div><h1>Listening</h1><div class="subtitle">읽어드립니다</div></div>
+  <div class="hdr-right">
+    <div class="bt-indicator"><div class="bt-dot"></div>BT</div>
+  </div>
+</header>
+
+<!-- 플레이어 — sticky 상단 -->
+<div class="player-section">
+  <div class="now-playing">
+    <div class="np-icon">
+      <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+        <path d="M4 10C4 7.24 6.24 5 9 5C11.76 5 14 7.24 14 10" stroke="white" stroke-width="1.8" stroke-linecap="round" fill="none"/>
+        <rect x="2.5" y="10" width="3" height="4" rx="1.5" fill="white"/>
+        <rect x="12.5" y="10" width="3" height="4" rx="1.5" fill="white"/>
+        <text x="7.5" y="12" font-size="5" fill="#3DD6B5" font-weight="bold" font-family="Arial">♪</text>
+      </svg>
+    </div>
+    <div>
+      <div class="np-title" id="np-title">콘텐츠를 불러오세요</div>
+      <div class="np-sub" id="np-sub">한국어 TTS 준비 중</div>
+    </div>
+  </div>
+  <div class="voice-row">
+    <span class="voice-label">🎙 음성</span>
+    <div style="display:flex;gap:6px;margin-left:auto;">
+      <button id="btn-male" class="gender-btn active" onclick="setGender('male')">👨 남성</button>
+      <button id="btn-female" class="gender-btn" onclick="setGender('female')">👩 여성</button>
+    </div>
+  </div>
+  <div class="progress-wrap">
+    <div class="progress-bar-bg" onclick="seekProgress(event)">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+    <div class="progress-times"><span id="time-cur">0:00</span><span id="time-total">0:00</span></div>
+  </div>
+  <div class="speed-row">
+    <button class="speed-btn" onclick="setSpeed(0.8)">0.8×</button>
+    <button class="speed-btn active" onclick="setSpeed(1.0)">1.0×</button>
+    <button class="speed-btn" onclick="setSpeed(1.2)">1.2×</button>
+    <button class="speed-btn" onclick="setSpeed(1.5)">1.5×</button>
+    <button class="speed-btn" onclick="setSpeed(2.0)">2.0×</button>
+  </div>
+  <div class="controls">
+    <div class="ctrl-wrap">
+      <button class="ctrl-btn" onclick="restartSpeech()">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.33"/></svg>
+      </button>
+      <div class="ctrl-label">처음부터</div>
+    </div>
+    <div class="ctrl-wrap">
+      <button class="ctrl-btn primary" id="play-btn" onclick="togglePlay()">
+        <svg id="play-icon" width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
+      </button>
+      <div class="ctrl-label" id="play-label">재생</div>
+    </div>
+    <div class="ctrl-wrap">
+      <button class="ctrl-btn resume-ctrl" onclick="doResume()">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22C6.48 22 2 17.52 2 12S6.48 2 12 2s10 4.48 10 10"/>
+          <polyline points="16 12 20 12 20 8"/>
+          <polygon points="10,8 17,12 10,16" fill="currentColor" stroke="none"/>
+        </svg>
+      </button>
+      <div class="ctrl-label" style="color:var(--amber);">이어듣기</div>
+    </div>
+    <div class="ctrl-wrap">
+      <button class="ctrl-btn" onclick="skipForward()">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-3.33"/></svg>
+      </button>
+      <div class="ctrl-label">앞으로</div>
+    </div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('url')">🔗 URL</div>
+  <div class="tab" onclick="switchTab('file')">📎 파일</div>
+  <div class="tab" onclick="switchTab('text')">✏️ 텍스트</div>
+</div>
+
+<!-- URL 패널 -->
+<div class="panel active" id="panel-url">
+  <div id="resume-banner-url" class="resume-banner">
+    <div class="resume-icon">🎧</div>
+    <div class="resume-info">
+      <div class="resume-label">이어듣기</div>
+      <div class="resume-title" id="rb-title-url">—</div>
+      <div class="resume-pos" id="rb-pos-url"></div>
+    </div>
+    <div class="resume-btns">
+      <button class="btn-resume" onclick="doResume()">이어듣기</button>
+      <button class="btn-dismiss" onclick="dismissResume('url')">닫기</button>
+    </div>
+  </div>
+  <div class="input-card">
+    <div class="input-label">웹 주소 붙여넣기</div>
+    <div class="url-row">
+      <div class="url-wrap">
+        <input type="url" id="url-input" placeholder="https://..."/>
+        <button class="url-clear" onclick="clearUrl()">×</button>
+      </div>
+      <button class="btn-load" onclick="loadURL()">불러오기</button>
+    </div>
+  </div>
+  <div class="status-card" id="url-status">
+    <div class="status-dot"></div>
+    <div class="status-text" id="url-status-text"></div>
+  </div>
+  <div class="content-spacer"></div>
+</div>
+
+<!-- 파일 패널 -->
+<div class="panel" id="panel-file">
+  <div id="resume-banner-file" class="resume-banner">
+    <div class="resume-icon">🎧</div>
+    <div class="resume-info">
+      <div class="resume-label">이어듣기</div>
+      <div class="resume-title" id="rb-title-file">—</div>
+      <div class="resume-pos" id="rb-pos-file"></div>
+    </div>
+    <div class="resume-btns">
+      <button class="btn-resume" onclick="doResume()">이어듣기</button>
+      <button class="btn-dismiss" onclick="dismissResume('file')">닫기</button>
+    </div>
+  </div>
+  <div class="upload-area" onclick="document.getElementById('file-input').click()">
+    <input type="file" id="file-input" accept=".pdf,.txt" onchange="loadFile(this)">
+    <div class="upload-icon">📂</div>
+    <div class="upload-title">파일 선택</div>
+    <div class="upload-sub">PDF · TXT 지원</div>
+  </div>
+  <div class="status-card" id="file-status">
+    <div class="status-dot"></div>
+    <div class="status-text" id="file-status-text"></div>
+  </div>
+  <div class="content-spacer"></div>
+</div>
+
+<!-- 텍스트 패널 -->
+<div class="panel" id="panel-text">
+  <div id="resume-banner-text" class="resume-banner">
+    <div class="resume-icon">🎧</div>
+    <div class="resume-info">
+      <div class="resume-label">이어듣기</div>
+      <div class="resume-title" id="rb-title-text">—</div>
+      <div class="resume-pos" id="rb-pos-text"></div>
+    </div>
+    <div class="resume-btns">
+      <button class="btn-resume" onclick="doResume()">이어듣기</button>
+      <button class="btn-dismiss" onclick="dismissResume('text')">닫기</button>
+    </div>
+  </div>
+  <div class="input-card">
+    <div class="input-label">직접 텍스트 입력</div>
+    <textarea class="text-input-area" id="direct-text" placeholder="읽어드릴 내용을 여기에 붙여넣거나 입력하세요..."></textarea>
+    <button class="btn-full" onclick="loadText()">읽기 준비</button>
+  </div>
+  <div class="content-spacer"></div>
+</div>
+
+<script>
+const isAndroid = typeof AndroidTTS !== 'undefined';
+const SAVE_KEY = 'listening_progress';
+let fullText='', sentences=[], curIdx=0;
+let isPlaying=false, currentSpeed=1.0, genderPref='male', saveTitle='';
+
+/* ── 저장/로드 ── */
+function saveProgress(){
+  if(!fullText||!saveTitle) return;
+  try{ localStorage.setItem(SAVE_KEY,JSON.stringify({title:saveTitle,text:fullText,idx:curIdx,total:sentences.length,pct:sentences.length?Math.round(curIdx/sentences.length*100):0,ts:Date.now()})); }catch(e){}
+}
+function loadSaved(){ try{return JSON.parse(localStorage.getItem(SAVE_KEY));}catch(e){return null;} }
+function showResumeBanners(){
+  const s=loadSaved(); if(!s) return;
+  const ago=Math.round((Date.now()-s.ts)/60000);
+  const agoStr=ago<1?'방금 전':ago<60?ago+'분 전':Math.round(ago/60)+'시간 전';
+  ['url','file','text'].forEach(t=>{
+    document.getElementById('rb-title-'+t).textContent=s.title;
+    document.getElementById('rb-pos-'+t).textContent=s.pct+'% · '+s.idx+'/'+s.total+'문장 · '+agoStr;
+    document.getElementById('resume-banner-'+t).classList.add('show');
+  });
+}
+function dismissResume(t){ document.getElementById('resume-banner-'+t).classList.remove('show'); }
+function doResume(){
+  const s=loadSaved();
+  if(!s&&!fullText){alert('먼저 콘텐츠를 불러오세요.');return;}
+  if(s){ setContent(s.text,s.title,s.idx); ['url','file','text'].forEach(t=>document.getElementById('resume-banner-'+t).classList.remove('show')); }
+  setTimeout(()=>startSpeechFrom(curIdx),200);
+}
+
+/* ── Android TTS 콜백 ── */
+function onNativeTtsDone(){
+  curIdx++;
+  updateProgress(); saveProgress();
+  if(curIdx<sentences.length) speakCurrent();
+  else{ isPlaying=false; setPlayIcon(false); }
+}
+
+/* ── TTS ── */
+function speakCurrent(){
+  if(!isPlaying||curIdx>=sentences.length) return;
+  const s=sentences[curIdx].trim();
+  if(!s){curIdx++;speakCurrent();return;}
+  if(isAndroid){
+    AndroidTTS.setOnDoneCallback();
+    AndroidTTS.speak(s,currentSpeed,1.1);
+  } else {
+    const u=new SpeechSynthesisUtterance(s);
+    u.lang='ko-KR'; u.rate=currentSpeed; u.pitch=1.1;
+    u.onend=()=>onNativeTtsDone(); u.onerror=()=>onNativeTtsDone();
+    window.speechSynthesis.speak(u);
+  }
+}
+function startSpeechFrom(idx){
+  if(isAndroid) AndroidTTS.stop(); else window.speechSynthesis.cancel();
+  curIdx=Math.max(0,Math.min(idx,sentences.length-1));
+  isPlaying=true; setPlayIcon(true);
+  setTimeout(()=>speakCurrent(),100);
+}
+function togglePlay(){
+  if(!fullText){alert('먼저 콘텐츠를 불러오세요.');return;}
+  if(isPlaying) pauseSpeech(); else startSpeechFrom(curIdx);
+}
+function pauseSpeech(){
+  if(isAndroid) AndroidTTS.pause(); else window.speechSynthesis.cancel();
+  isPlaying=false; setPlayIcon(false); saveProgress();
+}
+function restartSpeech(){
+  if(isAndroid) AndroidTTS.stop(); else window.speechSynthesis.cancel();
+  isPlaying=false; curIdx=0; updateProgress(); setPlayIcon(false);
+  if(fullText) setTimeout(()=>startSpeechFrom(0),100);
+}
+function skipForward(){ if(!fullText) return; startSpeechFrom(Math.min(curIdx+10,sentences.length-1)); }
+function setSpeed(s){
+  currentSpeed=s;
+  document.querySelectorAll('.speed-btn').forEach(b=>b.classList.toggle('active',parseFloat(b.textContent)===s));
+  if(isPlaying){const i=curIdx;pauseSpeech();setTimeout(()=>startSpeechFrom(i),80);}
+}
+function seekProgress(e){
+  if(!sentences.length) return;
+  startSpeechFrom(Math.floor((e.offsetX/e.currentTarget.offsetWidth)*sentences.length));
+}
+function setGender(g){
+  genderPref=g;
+  document.getElementById('btn-male').classList.toggle('active',g==='male');
+  document.getElementById('btn-female').classList.toggle('active',g==='female');
+}
+
+/* ── URL 지우기 ── */
+function clearUrl(){
+  document.getElementById('url-input').value='';
+  document.getElementById('url-input').focus();
+  document.getElementById('url-status').classList.remove('show');
+}
+
+/* ── 콘텐츠 로드 ── */
+async function loadURL(){
+  const url=document.getElementById('url-input').value.trim(); if(!url) return;
+  document.getElementById('np-title').textContent='URL 불러오는 중...';
+  const proxies=[
+    u=>'https://api.allorigins.win/get?url='+encodeURIComponent(u),
+    u=>'https://corsproxy.io/?'+encodeURIComponent(u),
+    u=>'https://api.codetabs.com/v1/proxy?quest='+encodeURIComponent(u),
+  ];
+  for(let i=0;i<proxies.length;i++){
+    try{
+      document.getElementById('np-title').textContent='불러오는 중... ('+(i+1)+'/'+proxies.length+')';
+      const r=await fetch(proxies[i](url),{signal:AbortSignal.timeout(8000)});
+      if(!r.ok) continue;
+      let html=i===0?(await r.json()).contents:await r.text();
+      if(!html||html.trim().length<50) continue;
+      const doc=new DOMParser().parseFromString(html,'text/html');
+      ['script','style','nav','footer','header','aside','iframe','noscript'].forEach(t=>doc.querySelectorAll(t).forEach(e=>e.remove()));
+      const body=(doc.body?doc.body.innerText:doc.documentElement.innerText).replace(/\s+/g,' ').trim();
+      if(body.length<50) continue;
+      setContent(body.slice(0,10000),url); return;
+    }catch(e){continue;}
+  }
+  document.getElementById('np-title').textContent='콘텐츠를 불러오세요';
+  const sc=document.getElementById('url-status'),st=document.getElementById('url-status-text');
+  sc.style.background='#FFF3CD'; sc.classList.add('show');
+  st.textContent='⚠️ 로딩 실패 — 텍스트 탭에 붙여넣기 해주세요';
+}
+
+function loadFile(input){
+  const file=input.files[0]; if(!file) return;
+  const ext=file.name.split('.').pop().toLowerCase();
+  if(ext==='txt'){
+    const r=new FileReader();
+    r.onload=e=>{setContent(e.target.result,file.name);showReadyToast();};
+    r.readAsText(file,'UTF-8');
+  } else if(ext==='pdf'){
+    const r=new FileReader();
+    r.onload=async e=>{
+      try{
+        await loadPdfJs();
+        const pdf=await window.pdfjsLib.getDocument({data:e.target.result}).promise;
+        let text='';
+        for(let i=1;i<=Math.min(pdf.numPages,30);i++){
+          const pg=await pdf.getPage(i);
+          const tc=await pg.getTextContent();
+          text+=tc.items.map(s=>s.str).join(' ')+'\n';
+        }
+        if(!text.trim()){showFileError();return;}
+        setContent(text,file.name); showReadyToast();
+      }catch{showFileError();}
+    };
+    r.readAsArrayBuffer(file);
+  }
+}
+function loadPdfJs(){
+  return new Promise(res=>{
+    if(window.pdfjsLib){res();return;}
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload=()=>{window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';res();};
+    document.head.appendChild(s);
+  });
+}
+function loadText(){
+  const t=document.getElementById('direct-text').value.trim(); if(!t) return;
+  setContent(t,'직접 입력 텍스트');
+}
+function setContent(text,title,startIdx){
+  fullText=text; saveTitle=title;
+  sentences=(text.match(/[^.!?。\n]+[.!?。\n]?/g)||[text]).filter(s=>s.trim().length>2);
+  curIdx=startIdx||0;
+  document.getElementById('np-title').textContent=title;
+  document.getElementById('np-sub').textContent=sentences.length+'개 문장 · 준비 완료';
+  document.getElementById('time-total').textContent=formatTime(sentences.length*3);
+  updateProgress();
+  const ap=document.querySelector('.panel.active').id.replace('panel-','');
+  const sc=document.getElementById(ap+'-status'),st=document.getElementById(ap+'-status-text');
+  if(sc&&st){ st.textContent='✅ '+sentences.length+'문장 추출 완료 — '+title.slice(0,40); sc.classList.add('show'); }
+}
+function showReadyToast(){
+  const btn=document.getElementById('play-btn');
+  btn.style.boxShadow='0 0 0 6px rgba(61,214,181,0.35)'; btn.style.transform='scale(1.12)';
+  setTimeout(()=>{btn.style.boxShadow='';btn.style.transform='';},1200);
+}
+function showFileError(){
+  document.getElementById('np-title').textContent='콘텐츠를 불러오세요';
+  const sc=document.getElementById('file-status'),st=document.getElementById('file-status-text');
+  sc.style.background='#FFF3CD'; sc.classList.add('show');
+  st.textContent='⚠️ PDF 추출 실패 — 텍스트 탭에 붙여넣기 해주세요';
+}
+
+/* ── UI ── */
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',['url','file','text'][i]===t));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+t).classList.add('active');
+}
+function updateProgress(){
+  const pct=sentences.length?Math.round(curIdx/sentences.length*100):0;
+  document.getElementById('progress-fill').style.width=pct+'%';
+  document.getElementById('time-cur').textContent=formatTime(curIdx*3);
+  document.getElementById('np-sub').textContent=curIdx+'/'+sentences.length+'번째 문장';
+}
+function setPlayIcon(p){
+  document.getElementById('play-icon').innerHTML=p
+    ?'<rect x="6" y="4" width="4" height="16" rx="1" fill="white"/><rect x="14" y="4" width="4" height="16" rx="1" fill="white"/>'
+    :'<polygon points="5,3 19,12 5,21" fill="white"/>';
+  document.getElementById('play-label').textContent=p?'일시정지':'재생';
+}
+function formatTime(s){const m=Math.floor(s/60);return m+':'+String(s%60).padStart(2,'0');}
+function startApp(){ document.getElementById('overlay').classList.add('hidden'); }
+
+window.addEventListener('pagehide',saveProgress);
+window.addEventListener('beforeunload',saveProgress);
+showResumeBanners();
+</script>
+</body>
+</html>
