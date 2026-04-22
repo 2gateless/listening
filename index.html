@@ -807,6 +807,41 @@ function getNativeTTS() {
   return null;
 }
 
+// 포그라운드 서비스 객체 가져오기
+function getForegroundService() {
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ForegroundService) {
+    return window.Capacitor.Plugins.ForegroundService;
+  }
+  return null;
+}
+
+async function startForegroundMode() {
+  const fs = getForegroundService();
+  if (fs) {
+    try {
+      await fs.startForegroundService({
+        id: 12345,
+        title: "Listening",
+        body: "백그라운드에서 읽어주는 중입니다...",
+        smallIcon: "ic_launcher",
+        importance: 3, // NotificationManager.IMPORTANCE_DEFAULT
+        serviceType: 1024, // specialUse (Android 14)
+      });
+      logDebug('Foreground Service Started');
+    } catch(e) { logDebug('Foreground Service Start Error: ' + e.message); }
+  }
+}
+
+async function stopForegroundMode() {
+  const fs = getForegroundService();
+  if (fs) {
+    try {
+      await fs.stopForegroundService();
+      logDebug('Foreground Service Stopped');
+    } catch(e) { logDebug('Foreground Service Stop Error: ' + e.message); }
+  }
+}
+
 function saveProgress() {
   if (!fullText || !saveTitle) return;
   const data = {
@@ -1112,6 +1147,7 @@ function startSpeechFrom(idx) {
     curIdx = Math.max(0, Math.min(idx, sentences.length-1));
     isPlaying = true; isPaused = false;
     setPlayIcon(true);
+    startForegroundMode(); // 백그라운드 유지 시작
     speakNext();
   }, 150);
 }
@@ -1120,6 +1156,7 @@ async function speakNext() {
   if (!isPlaying || curIdx >= sentences.length) {
     logDebug('Speech Finished or Stopped');
     isPlaying = false; setPlayIcon(false);
+    stopForegroundMode(); // 백그라운드 유지 종료
     if (curIdx >= sentences.length) document.getElementById('progress-fill').style.width = '100%';
     saveProgress();
     return;
@@ -1197,6 +1234,7 @@ function pauseSpeech() {
   }
   isPlaying = false; isPaused = true;
   setPlayIcon(false);
+  stopForegroundMode(); // 백그라운드 유지 종료
   saveProgress(); 
 }
 
