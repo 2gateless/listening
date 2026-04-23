@@ -116,7 +116,7 @@
   @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 
   .layout-header-group {
-    position: sticky; top: 0; z-index: 100;
+    position: relative; z-index: 100;
     background: var(--bg);
     flex-shrink: 0;
   }
@@ -617,7 +617,7 @@
   <div class="input-card">
     <div class="url-row">
       <div class="url-input-wrap">
-        <input type="text" id="url-input" placeholder="웹 주소를 여기에 붙여넣으세요">
+        <input type="text" id="url-input" placeholder="웹 주소를 여기에 붙여넣으세요" onfocus="this.select()">
         <button class="btn-clear-url" onclick="clearUrlInput()">✕</button>
       </div>
       <button class="btn-load" onclick="loadURL()">불러오기</button>

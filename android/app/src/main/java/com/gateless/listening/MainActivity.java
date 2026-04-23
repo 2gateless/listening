@@ -133,9 +133,15 @@ public class MainActivity extends Activity {
             try { pitch = Float.parseFloat(pitchStr); } catch (Exception e) {}
             tts.setSpeechRate(rate);
             tts.setPitch(pitch);
-            HashMap<String, String> params = new HashMap<>();
-            params.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "utt");
-            tts.speak(text, TextToSpeech.QUEUE_FLUSH, params);
+            try {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                    tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "utt");
+                } else {
+                    HashMap<String, String> params = new HashMap<>();
+                    params.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, "utt");
+                    tts.speak(text, TextToSpeech.QUEUE_FLUSH, params);
+                }
+            } catch (Exception e) {}
         }
 
         @JavascriptInterface
@@ -178,18 +184,24 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void startForeground() {
-            Intent intent = new Intent(MainActivity.this, TtsService.class);
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                startForegroundService(intent);
-            } else {
-                startService(intent);
+            try {
+                Intent intent = new Intent(MainActivity.this, TtsService.class);
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                    startForegroundService(intent);
+                } else {
+                    startService(intent);
+                }
+            } catch (Exception e) {
+                // Ignore crash if foreground service is restricted
             }
         }
 
         @JavascriptInterface
         public void stopForeground() {
-            Intent intent = new Intent(MainActivity.this, TtsService.class);
-            stopService(intent);
+            try {
+                Intent intent = new Intent(MainActivity.this, TtsService.class);
+                stopService(intent);
+            } catch (Exception e) {}
         }
     }
 
