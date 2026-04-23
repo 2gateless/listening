@@ -35,7 +35,11 @@ public class TtsService extends Service {
     public void onCreate() {
         super.onCreate();
         createNotificationChannel();
-        startForeground(NOTIF_ID, buildNotification("Ready"));
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            startForeground(NOTIF_ID, buildNotification("Ready"), 1073741824); // FOREGROUND_SERVICE_TYPE_SPECIAL_USE
+        } else {
+            startForeground(NOTIF_ID, buildNotification("Ready"));
+        }
 
         tts = new TextToSpeech(this, status -> {
             if (status == TextToSpeech.SUCCESS) {
