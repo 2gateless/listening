@@ -789,7 +789,8 @@ function getNativeTTS() {
       speak: (options) => {
         return new Promise(resolve => {
           window.activeTtsResolve = resolve;
-          window.AndroidTTS.speak(options.text, options.rate || 1.0, options.pitch || 1.0);
+          // 안드로이드 네이티브 메서드 시그니처 매칭을 위해 String으로 변환하여 전달
+          window.AndroidTTS.speak(options.text, String(options.rate || 1.0), String(options.pitch || 1.0));
         });
       },
       stop: async () => {
@@ -984,6 +985,7 @@ function switchTab(tab) {
   document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['url','file','text'][i]===tab));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
   document.getElementById('panel-'+tab).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' }); // 탭 변경 시 화면 맨 위로 이동하여 가려짐 방지
 }
 
 async function loadURL() {

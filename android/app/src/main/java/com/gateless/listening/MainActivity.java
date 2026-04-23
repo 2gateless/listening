@@ -125,8 +125,12 @@ public class MainActivity extends Activity {
 
     public class JsBridge {
         @JavascriptInterface
-        public void speak(String text, float rate, float pitch) {
+        public void speak(String text, String rateStr, String pitchStr) {
             if (!ttsReady) return;
+            float rate = 1.0f;
+            float pitch = 1.0f;
+            try { rate = Float.parseFloat(rateStr); } catch (Exception e) {}
+            try { pitch = Float.parseFloat(pitchStr); } catch (Exception e) {}
             tts.setSpeechRate(rate);
             tts.setPitch(pitch);
             HashMap<String, String> params = new HashMap<>();
