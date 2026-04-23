@@ -775,7 +775,34 @@ function getSynth() {
 }
 
 // 네이티브 TTS 객체 가져오기
+window.onNativeTtsDone = () => {
+  if (window.activeTtsResolve) {
+    window.activeTtsResolve();
+    window.activeTtsResolve = null;
+  }
+};
+
 function getNativeTTS() {
+  // MainActivity.java에서 제공하는 AndroidTTS 사용
+  if (window.AndroidTTS) {
+    return {
+      speak: (options) => {
+        return new Promise(resolve => {
+          window.activeTtsResolve = resolve;
+          window.AndroidTTS.speak(options.text, options.rate || 1.0, options.pitch || 1.0);
+        });
+      },
+      stop: async () => {
+        window.AndroidTTS.stop();
+        if (window.activeTtsResolve) {
+          window.activeTtsResolve();
+          window.activeTtsResolve = null;
+        }
+      }
+    };
+  }
+
+  // Capacitor 네이티브 플러그인 폴백
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.TextToSpeech) {
     return window.Capacitor.Plugins.TextToSpeech;
   }
@@ -791,6 +818,15 @@ function getForegroundService() {
 }
 
 async function startForegroundMode() {
+  if (window.AndroidTTS && window.AndroidTTS.startForeground) {
+    try {
+      window.AndroidTTS.startForeground();
+      window.AndroidTTS.acquireCpuWakeLock();
+      logDebug('NativeApp Foreground Started');
+      return;
+    } catch(e) { logDebug('Native Foreground Error: ' + e.message); }
+  }
+
   const fs = getForegroundService();
   if (fs) {
     try {
@@ -808,6 +844,15 @@ async function startForegroundMode() {
 }
 
 async function stopForegroundMode() {
+  if (window.AndroidTTS && window.AndroidTTS.stopForeground) {
+    try {
+      window.AndroidTTS.stopForeground();
+      window.AndroidTTS.releaseCpuWakeLock();
+      logDebug('NativeApp Foreground Stopped');
+      return;
+    } catch(e) { logDebug('Native Foreground Stop Error: ' + e.message); }
+  }
+
   const fs = getForegroundService();
   if (fs) {
     try {

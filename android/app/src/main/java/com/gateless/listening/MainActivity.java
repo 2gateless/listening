@@ -12,6 +12,8 @@ import android.webkit.PermissionRequest;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
+import android.os.PowerManager;
+import android.content.Context;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import java.util.HashMap;
@@ -23,6 +25,7 @@ public class MainActivity extends Activity {
     private TextToSpeech tts;
     private boolean ttsReady = false;
     private ValueCallback<Uri[]> fileChooserCallback;
+    private PowerManager.WakeLock wakeLock;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,6 +36,11 @@ public class MainActivity extends Activity {
                         WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED |
                         WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
         );
+
+        PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+        if (pm != null) {
+            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Listening::WakeLock");
+        }
 
         WebView.setWebContentsDebuggingEnabled(true);
         webView = new WebView(this);
@@ -145,6 +153,40 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void setOnDoneCallback() {}
+
+        @JavascriptInterface
+        public void acquireCpuWakeLock() {
+            runOnUiThread(() -> {
+                if (wakeLock != null && !wakeLock.isHeld()) {
+                    wakeLock.acquire(4 * 60 * 60 * 1000L);
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void releaseCpuWakeLock() {
+            runOnUiThread(() -> {
+                if (wakeLock != null && wakeLock.isHeld()) {
+                    wakeLock.release();
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void startForeground() {
+            Intent intent = new Intent(MainActivity.this, TtsService.class);
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                startForegroundService(intent);
+            } else {
+                startService(intent);
+            }
+        }
+
+        @JavascriptInterface
+        public void stopForeground() {
+            Intent intent = new Intent(MainActivity.this, TtsService.class);
+            stopService(intent);
+        }
     }
 
     @Override
@@ -155,6 +197,9 @@ public class MainActivity extends Activity {
 
     @Override
     protected void onDestroy() {
+        if (wakeLock != null && wakeLock.isHeld()) {
+            wakeLock.release();
+        }
         if (tts != null) { tts.stop(); tts.shutdown(); }
         super.onDestroy();
     }
