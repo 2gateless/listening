@@ -1321,11 +1321,8 @@ window.addEventListener('visibilitychange', async () => {
       pauseSpeech();
       saveProgress();
     }
-function startApp() {
-  document.getElementById('overlay').classList.add('hidden');
-  localStorage.setItem('listening-setup-done', 'true');
-  requestWakeLock();
-}
+  }
+});
 
 function clearUrlInput() {
   const input = document.getElementById('url-input');
